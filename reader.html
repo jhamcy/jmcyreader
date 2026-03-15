@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading... | ManhwaHub</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg: #0b0d10;
+            --nav-bg: rgba(22, 25, 33, 0.95);
+            --accent: #9b59b6;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg);
+            color: white;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Top Control Bar */
+        .reader-nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 60px;
+            background: var(--nav-bg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 5%;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #334155;
+        }
+
+        .btn-back {
+            text-decoration: none;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        /* Image Container */
+        #pages-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 60px; /* Space for nav */
+            width: 100%;
+        }
+
+        #pages-container img {
+            width: 100%;
+            max-width: 800px; /* Keeps manhwa from being too wide on desktop */
+            display: block;
+            height: auto;
+        }
+
+        .loader {
+            padding: 100px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        /* Chapter Navigation (Bottom) */
+        .bottom-nav {
+            padding: 40px 0;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .nav-btn {
+            background: var(--accent);
+            border: none;
+            color: white;
+            padding: 10px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="reader-nav">
+        <a href="index.html" class="btn-back">
+            <i data-lucide="arrow-left" size="18"></i>
+            Exit Reader
+        </a>
+        <div id="chapter-label" style="font-weight: bold; font-size: 0.9rem;">Loading...</div>
+        <div style="width: 80px;"></div> </nav>
+
+    <div id="pages-container">
+        <div class="loader">
+            <i data-lucide="loader-2" class="spin"></i>
+            <p>Fetching pages from server...</p>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <button class="nav-btn" onclick="location.reload()">Refresh Page</button>
+    </div>
+
+    <script>
+        // 1. Get the Manga ID from the URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const mangaId = urlParams.get('id');
+
+        async function initReader() {
+            if (!mangaId) {
+                document.getElementById('pages-container').innerHTML = "No Manga ID found.";
+                return;
+            }
+
+            try {
+                // 2. Fetch the first available chapter for this manga
+                const chapterRes = await fetch(`https://api.mangadex.org/manga/${mangaId}/feed?limit=1&translatedLanguage[]=en&order[chapter]=asc`);
+                const chapterData = await chapterRes.json();
+                
+                if (chapterData.data.length === 0) {
+                    document.getElementById('pages-container').innerHTML = "No English chapters found.";
+                    return;
+                }
+
+                const firstChapterId = chapterData.data[0].id;
+                const chapterNum = chapterData.data[0].attributes.chapter;
+                document.getElementById('chapter-label').innerText = `Chapter ${chapterNum}`;
+
+                // 3. Get the Image Server URL for this chapter
+                const serverRes = await fetch(`https://api.mangadex.org/at-home/server/${firstChapterId}`);
+                const serverData = await serverRes.json();
+
+                const baseUrl = serverData.baseUrl;
+                const hash = serverData.chapter.hash;
+                const fileNames = serverData.chapter.data; // Using high-quality data
+
+                // 4. Render the Images
+                const container = document.getElementById('pages-container');
+                container.innerHTML = ''; // Clear loader
+
+                fileNames.forEach(file => {
+                    const img = document.createElement('img');
+                    img.src = `${baseUrl}/data/${hash}/${file}`;
+                    img.loading = "lazy"; // Important for scroll performance
+                    container.appendChild(img);
+                });
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('pages-container').innerHTML = "Error loading content.";
+            }
+        }
+
+        initReader();
+        lucide.createIcons();
+    </script>
+</body>
+</html>
