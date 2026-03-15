@@ -17,7 +17,6 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         body { background: var(--bg); color: var(--text); line-height: 1.6; }
 
-        /* Navbar */
         nav {
             background: var(--card);
             padding: 10px 5%;
@@ -30,13 +29,11 @@
         .logo { font-size: 1.5rem; font-weight: 800; text-decoration: none; color: white; }
         .logo span { color: var(--accent); }
 
-        .search-container { position: relative; width: 250px; }
         .search-input {
-            width: 100%; background: #0b0d10; border: 1px solid #334155;
-            color: white; padding: 8px 15px; border-radius: 6px; outline: none;
+            background: #0b0d10; border: 1px solid #334155;
+            color: white; padding: 8px 15px; border-radius: 6px; width: 250px;
         }
 
-        /* Layout Grid */
         .wrapper {
             max-width: 1200px; margin: 20px auto; padding: 0 20px;
             display: grid; grid-template-columns: 1fr 300px; gap: 25px;
@@ -56,21 +53,22 @@
             transition: 0.3s; cursor: pointer; border: 1px solid transparent;
         }
         .manga-card:hover { border-color: var(--accent); transform: translateY(-3px); }
-        .manga-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
+        .manga-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #000; }
         .manga-info { padding: 10px; font-size: 0.85rem; }
 
-        /* Sidebar Ads & Popular */
+        .load-more-btn {
+            display: block; width: 200px; margin: 30px auto; padding: 12px;
+            background: var(--accent); color: white; border: none;
+            border-radius: 6px; cursor: pointer; font-weight: 800;
+        }
+        .load-more-btn:disabled { background: #334155; cursor: not-allowed; }
+
         .sidebar-box { background: var(--card); padding: 15px; border-radius: 8px; margin-bottom: 20px; }
 
-        footer { 
-            margin-top: 50px; padding: 40px; background: var(--card); 
-            text-align: center; border-top: 1px solid #1e293b; 
-        }
+        footer { margin-top: 50px; padding: 40px; background: var(--card); text-align: center; border-top: 1px solid #1e293b; }
 
         @media (max-width: 850px) {
             .wrapper { grid-template-columns: 1fr; }
-            .search-container { width: 100%; margin-top: 10px; }
-            nav { flex-direction: column; height: auto; padding: 15px; }
         }
     </style>
 </head>
@@ -78,13 +76,8 @@
 
     <nav>
         <a href="index.html" class="logo">JMCY<span>READER</span></a>
-        <div class="search-container">
-            <input type="text" id="manga-search" class="search-input" placeholder="Search and read free...">
-        </div>
-        <div style="display: flex; gap: 15px; color: var(--muted); cursor: pointer;">
-            <i data-lucide="bell"></i>
-            <i data-lucide="bookmark"></i>
-        </div>
+        <input type="text" id="manga-search" class="search-input" placeholder="Search and read free...">
+        <div style="color: var(--muted); cursor: pointer;"><i data-lucide="bookmark"></i></div>
     </nav>
 
     <div class="wrapper">
@@ -97,6 +90,7 @@
             <h2 class="section-title">Latest Updates</h2>
             <div class="manga-grid" id="manga-list">
                 </div>
+            <button id="load-more" class="load-more-btn">LOAD MORE</button>
         </main>
 
         <aside>
@@ -105,58 +99,72 @@
                 <script async="async" data-cfasync="false" src="https://spreadpreferencetelevision.com/4c0ed34fba63006187eb212da78a33af/invoke.js"></script>
                 <div id="container-4c0ed34fba63006187eb212da78a33af"></div>
             </div>
-
+            
             <div class="sidebar-box">
                 <h3 style="margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 5px; font-size: 1rem;">Popular Today</h3>
                 <div style="font-size: 0.85rem; color: var(--muted);">
                     <p style="margin-bottom: 10px;">1. Solo Leveling</p>
                     <p style="margin-bottom: 10px;">2. Nano Machine</p>
-                    <p>3. Mercenary Enrollment</p>
                 </div>
             </div>
         </aside>
     </div>
 
     <footer>
-        <p style="font-size: 0.8rem; color: var(--muted); max-width: 600px; margin: 0 auto;">
-            <strong>Disclaimer:</strong> JMCY Reader is a custom client using the MangaDex API. We do not host any copyrighted material.
-        </p>
-        <p style="margin-top: 20px; font-size: 0.75rem;">&copy; 2026 JMCY Web Solutions</p>
+        <p style="font-size: 0.8rem; color: var(--muted);">© 2026 JMCY Web Solutions | Powered by MangaDex API</p>
     </footer>
 
     <script src="https://spreadpreferencetelevision.com/86/8d/1e/868d1eaa7d5b69adc9f351c0b95fb6f5.js"></script>
 
     <script>
-        async function fetchLatest() {
-            const list = document.getElementById('manga-list');
+        let currentOffset = 0;
+        const loadMoreBtn = document.getElementById('load-more');
+
+        async function loadManga(offset = 0) {
+            loadMoreBtn.disabled = true;
+            loadMoreBtn.innerText = "LOADING...";
+            
             try {
-                const res = await fetch('https://api.mangadex.org/manga?limit=10&contentRating[]=safe&includes[]=cover_art');
+                const res = await fetch(`https://api.mangadex.org/manga?limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe`);
                 const data = await res.json();
                 
-                list.innerHTML = '';
+                const list = document.getElementById('manga-list');
+                
                 data.data.forEach(manga => {
-                    const title = manga.attributes.title.en || "Untitled";
-                    const cover = manga.relationships.find(r => r.type === 'cover_art');
-                    const coverImg = cover ? `https://uploads.mangadex.org/covers/${manga.id}/${cover.attributes.fileName}.256.jpg` : 'https://via.placeholder.com/200x300';
+                    const title = manga.attributes.title.en || Object.values(manga.attributes.title)[0];
+                    
+                    // Fixed Image Logic: Find the filename in the relationships array
+                    const coverRel = manga.relationships.find(rel => rel.type === 'cover_art');
+                    const fileName = coverRel ? coverRel.attributes.fileName : null;
+                    const coverImg = fileName 
+                        ? `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg` 
+                        : 'https://via.placeholder.com/200x300';
                     
                     const card = document.createElement('div');
                     card.className = 'manga-card';
                     card.innerHTML = `
-                        <img src="${coverImg}">
+                        <img src="${coverImg}" loading="lazy">
                         <div class="manga-info">
                             <div style="font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${title}</div>
-                            <div style="color: var(--muted); font-size: 0.75rem;">View Series</div>
                         </div>
                     `;
                     card.onclick = () => window.location.href = `reader.html?id=${manga.id}`;
                     list.appendChild(card);
                 });
+
+                currentOffset += 12;
+                loadMoreBtn.disabled = false;
+                loadMoreBtn.innerText = "LOAD MORE";
             } catch (err) {
-                list.innerHTML = 'Error loading latest updates.';
+                console.error("Fetch error:", err);
+                loadMoreBtn.innerText = "ERROR LOADING";
             }
         }
 
-        fetchLatest();
+        // Initial Load
+        loadManga(currentOffset);
+
+        loadMoreBtn.addEventListener('click', () => loadManga(currentOffset));
         lucide.createIcons();
     </script>
 </body>
