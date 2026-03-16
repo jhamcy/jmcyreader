@@ -3,11 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="referrer" content="no-referrer">
-
-<title>JMCY Reader | Reading</title>
-
-<script src="https://unpkg.com/lucide@latest"></script>
+<title>JMCY Reader</title>
 
 <style>
 
@@ -23,30 +19,24 @@
 margin:0;
 padding:0;
 box-sizing:border-box;
-font-family:'Inter',sans-serif;
+font-family:Inter,sans-serif;
 }
 
 body{
 background:var(--bg);
 color:var(--text);
-line-height:1.6;
 }
 
-/* NAVBAR */
+/* NAV */
 
 nav{
 background:var(--card);
-padding:10px 5%;
-display:flex;
-justify-content:space-between;
+padding:12px 5%;
 border-bottom:2px solid #1e293b;
-position:sticky;
-top:0;
-z-index:1000;
 }
 
 .logo{
-font-size:1.5rem;
+font-size:1.4rem;
 font-weight:800;
 text-decoration:none;
 color:white;
@@ -60,8 +50,8 @@ color:var(--accent);
 
 .container{
 max-width:900px;
-margin:20px auto;
-padding:0 20px;
+margin:auto;
+padding:20px;
 }
 
 /* HEADER */
@@ -76,24 +66,8 @@ margin-bottom:20px;
 }
 
 .manga-header img{
-width:180px;
+width:160px;
 border-radius:6px;
-aspect-ratio:2/3;
-object-fit:cover;
-}
-
-.manga-details h1{
-margin-bottom:10px;
-color:var(--accent);
-}
-
-.manga-details p{
-font-size:0.9rem;
-color:var(--muted);
-display:-webkit-box;
--webkit-line-clamp:5;
--webkit-box-orient:vertical;
-overflow:hidden;
 }
 
 /* CHAPTER LIST */
@@ -104,44 +78,19 @@ border-radius:8px;
 overflow:hidden;
 }
 
-.chapter-item{
-display:flex;
-justify-content:space-between;
+.chapter{
 padding:15px 20px;
 border-bottom:1px solid #1e293b;
 cursor:pointer;
-transition:0.2s;
 }
 
-.chapter-item:hover{
+.chapter:hover{
 background:#1e293b;
-color:var(--accent);
 }
 
-.chapter-item:last-child{
-border:none;
-}
-
-#loading-state{
+.loading{
 text-align:center;
 padding:50px;
-font-weight:bold;
-}
-
-/* MOBILE */
-
-@media(max-width:600px){
-
-.manga-header{
-flex-direction:column;
-align-items:center;
-text-align:center;
-}
-
-.manga-header img{
-width:150px;
-}
-
 }
 
 </style>
@@ -153,81 +102,91 @@ width:150px;
 <a href="index.html" class="logo">JMCY<span>READER</span></a>
 </nav>
 
-<div class="container" id="main-content">
-<div id="loading-state">FETCHING MANGA DATA...</div>
+<div class="container" id="app">
+
+<div class="loading">Loading manga...</div>
+
 </div>
 
 <script>
 
 const params = new URLSearchParams(window.location.search);
 const mangaId = params.get("id");
-const container = document.getElementById("main-content");
+
+const app = document.getElementById("app");
+
+/* PROXY */
+
+function proxy(url){
+return "https://corsproxy.io/?"+encodeURIComponent(url);
+}
+
+/* LOAD MANGA */
 
 async function loadManga(){
 
-if(!mangaId){
-container.innerHTML="<h1>No Manga Selected</h1>";
-return;
-}
-
 try{
 
-/* FETCH DATA DIRECTLY FROM MANGADEX */
+/* MANGA INFO */
 
-const mangaRes = await fetch(
+const mangaRes = await fetch(proxy(
 `https://api.mangadex.org/manga/${mangaId}?includes[]=cover_art`
-);
-
-const feedRes = await fetch(
-`https://api.mangadex.org/manga/${mangaId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=100`
-);
+));
 
 const manga = await mangaRes.json();
+
+const mangaData = manga.contents ? JSON.parse(manga.contents) : manga;
+
+/* CHAPTER FEED */
+
+const feedRes = await fetch(proxy(
+`https://api.mangadex.org/manga/${mangaId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=100`
+));
+
 const feed = await feedRes.json();
+
+const feedData = feed.contents ? JSON.parse(feed.contents) : feed;
 
 /* TITLE */
 
 const title =
-manga.data.attributes.title.en ||
-Object.values(manga.data.attributes.title)[0] ||
-"Untitled";
+mangaData.data.attributes.title.en ||
+Object.values(mangaData.data.attributes.title)[0];
 
 /* DESCRIPTION */
 
 const desc =
-manga.data.attributes.description.en ||
-"No description available.";
+mangaData.data.attributes.description.en ||
+"No description";
 
 /* COVER */
 
 const coverRel =
-manga.data.relationships.find(r=>r.type==="cover_art");
+mangaData.data.relationships.find(r=>r.type==="cover_art");
 
-let fileName = null;
+let cover="";
 
-if(coverRel && coverRel.attributes){
-fileName = coverRel.attributes.fileName;
-}
-
-let coverUrl="https://via.placeholder.com/250x350";
-
-if(fileName){
-coverUrl=
-`https://uploads.mangadex.org/covers/${mangaId}/${fileName}.256.jpg`;
+if(coverRel){
+cover=
+`https://uploads.mangadex.org/covers/${mangaId}/${coverRel.attributes.fileName}.256.jpg`;
 }
 
 /* BUILD UI */
 
-container.innerHTML=`
+app.innerHTML=`
 
 <div class="manga-header">
 
-<img src="${coverUrl}" alt="${title}"
-onerror="this.src='https://via.placeholder.com/250x350'">
+<img src="${cover}">
 
-<div class="manga-details">
+<div>
+
 <h1>${title}</h1>
-<p>${desc}</p>
+
+<p style="color:var(--muted);font-size:14px;margin-top:10px">
+${desc}
+</p>
+
 </div>
 
 </div>
@@ -236,64 +195,40 @@ onerror="this.src='https://via.placeholder.com/250x350'">
 
 `;
 
-const chapterContainer =
-document.getElementById("chapters");
+const chapterBox=document.getElementById("chapters");
 
-/* NO CHAPTERS */
+/* CHAPTERS */
 
-if(!feed.data || feed.data.length===0){
+feedData.data.forEach(ch=>{
 
-chapterContainer.innerHTML=
-"<div style='padding:20px'>No English chapters found.</div>";
+const num = ch.attributes.chapter || "?";
 
-return;
+const div=document.createElement("div");
 
-}
+div.className="chapter";
 
-/* CREATE CHAPTER LIST */
+div.innerText="Chapter "+num;
 
-feed.data.forEach(chap=>{
+div.onclick=()=>{
 
-const cNum =
-chap.attributes.chapter || "?";
-
-const cTitle =
-chap.attributes.title ||
-`Chapter ${cNum}`;
-
-const item=document.createElement("div");
-
-item.className="chapter-item";
-
-item.innerHTML=`
-
-<span>Chapter ${cNum}</span>
-
-<span style="color:var(--muted);font-size:0.8rem">
-${cTitle}
-</span>
-
-`;
-
-item.onclick=()=>{
-
-window.location.href=`viewer.html?id=${chap.id}`;
+window.location =
+`viewer.html?id=${ch.id}&manga=${mangaId}`;
 
 };
 
-chapterContainer.appendChild(item);
+chapterBox.appendChild(div);
 
 });
 
 }
 
-catch(err){
+catch(e){
 
-container.innerHTML=`
-<div style="text-align:center">
+app.innerHTML=`
+<div class="loading">
 
 <h1>Error loading chapters</h1>
-<p>${err.message}</p>
+<p>Failed to fetch</p>
 
 </div>
 `;

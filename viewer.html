@@ -4,9 +4,8 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="referrer" content="no-referrer">
 
-<title>JMCY Reader | Viewer</title>
+<title>JMCY Reader</title>
 
 <style>
 
@@ -38,32 +37,22 @@ display:flex;
 justify-content:space-between;
 align-items:center;
 border-bottom:2px solid #1e293b;
-position:sticky;
-top:0;
-z-index:1000;
 }
 
 .logo{
 font-size:1.4rem;
 font-weight:800;
-color:white;
 text-decoration:none;
+color:white;
 }
 
 .logo span{
 color:var(--accent);
 }
 
-.back-btn{
-color:var(--accent);
-cursor:pointer;
-text-decoration:none;
-font-weight:bold;
-}
-
 /* READER */
 
-.reader-container{
+.reader{
 max-width:900px;
 margin:auto;
 padding:20px;
@@ -81,18 +70,29 @@ max-width:900px;
 border-radius:6px;
 }
 
-/* LOADING */
+/* CONTROLS */
+
+.controls{
+display:flex;
+justify-content:space-between;
+align-items:center;
+background:var(--card);
+padding:10px;
+margin-bottom:20px;
+border-radius:6px;
+}
+
+.btn{
+background:var(--accent);
+padding:8px 15px;
+border-radius:4px;
+cursor:pointer;
+font-size:14px;
+}
 
 .loading{
 text-align:center;
 padding:50px;
-font-size:18px;
-}
-
-.error{
-text-align:center;
-padding:50px;
-color:#ff6b6b;
 }
 
 </style>
@@ -102,92 +102,151 @@ color:#ff6b6b;
 <body>
 
 <nav>
-
-<a href="index.html" class="logo">
-JMCY<span>READER</span>
-</a>
-
-<a href="javascript:history.back()" class="back-btn">
-⬅ Back
-</a>
-
+<a href="index.html" class="logo">JMCY<span>READER</span></a>
 </nav>
 
-<div class="reader-container" id="reader">
+<div class="reader">
+
+<div class="controls">
+
+<div class="btn" id="prev">Prev</div>
+
+<div id="chapter-title">Loading...</div>
+
+<div class="btn" id="next">Next</div>
+
+</div>
+
+<div id="pages">
 
 <div class="loading">Loading chapter...</div>
+
+</div>
 
 </div>
 
 <script>
 
 const params = new URLSearchParams(window.location.search);
+
 const chapterId = params.get("id");
+const mangaId = params.get("manga");
 
-const reader = document.getElementById("reader");
+const pagesContainer = document.getElementById("pages");
+const title = document.getElementById("chapter-title");
 
-async function loadChapter(){
+let chapters = [];
+let currentIndex = 0;
 
-if(!chapterId){
+/* LOAD CHAPTER LIST */
 
-reader.innerHTML="<div class='error'>No chapter selected</div>";
-return;
+async function loadChapterList(){
+
+const res = await fetch(
+`https://api.mangadex.org/manga/${mangaId}/feed?translatedLanguage[]=en&order[chapter]=asc&limit=500`
+);
+
+const data = await res.json();
+
+chapters = data.data;
+
+currentIndex = chapters.findIndex(c=>c.id===chapterId);
 
 }
 
-try{
+/* LOAD CHAPTER PAGES */
 
-/* GET CHAPTER IMAGE SERVER */
+async function loadChapter(id){
 
-const serverRes = await fetch(
-`https://api.mangadex.org/at-home/server/${chapterId}`
+pagesContainer.innerHTML="<div class='loading'>Loading pages...</div>";
+
+const res = await fetch(
+`https://api.mangadex.org/at-home/server/${id}`
 );
 
-const server = await serverRes.json();
+const data = await res.json();
 
-const baseUrl = server.baseUrl;
-const chapter = server.chapter;
-const hash = chapter.hash;
-const pages = chapter.data;
+const base = data.baseUrl;
+const hash = data.chapter.hash;
+const pages = data.chapter.data;
 
-/* CLEAR LOADING */
+title.innerText =
+"Chapter " + (data.chapter.chapter || "?");
 
-reader.innerHTML="";
+pagesContainer.innerHTML="";
 
-/* CREATE PAGE IMAGES */
+pages.forEach(p=>{
 
-pages.forEach(page => {
+const img=document.createElement("img");
 
-const imgUrl =
-`${baseUrl}/data/${hash}/${page}`;
+img.src=`${base}/data/${hash}/${p}`;
 
-const div = document.createElement("div");
-div.className="page";
-
-const img = document.createElement("img");
-img.src = imgUrl;
 img.loading="lazy";
 
+const div=document.createElement("div");
+
+div.className="page";
+
 div.appendChild(img);
-reader.appendChild(div);
+
+pagesContainer.appendChild(div);
 
 });
 
 }
 
-catch(err){
+/* NEXT CHAPTER */
 
-reader.innerHTML=`
-<div class="error">
-Failed to load chapter pages
-</div>
-`;
+document.getElementById("next").onclick=()=>{
+
+if(currentIndex < chapters.length-1){
+
+currentIndex++;
+
+const id = chapters[currentIndex].id;
+
+window.location =
+`viewer.html?id=${id}&manga=${mangaId}`;
 
 }
 
+};
+
+/* PREV CHAPTER */
+
+document.getElementById("prev").onclick=()=>{
+
+if(currentIndex > 0){
+
+currentIndex--;
+
+const id = chapters[currentIndex].id;
+
+window.location =
+`viewer.html?id=${id}&manga=${mangaId}`;
+
 }
 
-loadChapter();
+};
+
+/* START */
+
+async function start(){
+
+if(!chapterId){
+
+pagesContainer.innerHTML="Chapter not found";
+return;
+
+}
+
+await loadChapterList();
+
+await loadChapter(chapterId);
+
+}
+
+start();
 
 </script>
 
