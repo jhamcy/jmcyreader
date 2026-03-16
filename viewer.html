@@ -1,1 +1,254 @@
-<!DOCTYPE html> <html> <head> <meta name="viewport" content="width=device-width, initial-scale=1"> <title>Reader</title> <link rel="stylesheet" href="style.css"> </head> <body> <nav> <a onclick="history.back()">⬅ Back</a> </nav> <div style="text-align:center;margin:10px"> <script async data-cfasync="false" src="https://spreadpreferencetelevision.com/4c0ed34fba63006187eb212da78a33af/invoke.js"></script> <div id="container-4c0ed34fba63006187eb212da78a33af"></div> </div> <div id="pages"></div> <script src="reader.js"></script> <script src="https://spreadpreferencetelevision.com/86/8d/1e/868d1eaa7d5b69adc9f351c0b95fb6f5.js"></script> </body> </html> 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>JMCY Reader</title>
+
+<style>
+
+:root{
+--bg:#0b0d10;
+--card:#161921;
+--accent:#9b59b6;
+--text:#ffffff;
+}
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Inter,sans-serif;
+}
+
+body{
+background:var(--bg);
+color:var(--text);
+}
+
+/* NAV */
+
+nav{
+background:var(--card);
+padding:12px 5%;
+display:flex;
+justify-content:space-between;
+align-items:center;
+border-bottom:2px solid #1e293b;
+}
+
+.logo{
+font-size:1.4rem;
+font-weight:800;
+text-decoration:none;
+color:white;
+}
+
+.logo span{
+color:var(--accent);
+}
+
+/* READER */
+
+.reader{
+max-width:900px;
+margin:auto;
+padding:20px;
+}
+
+.page{
+margin-bottom:10px;
+display:flex;
+justify-content:center;
+}
+
+.page img{
+width:100%;
+max-width:900px;
+border-radius:6px;
+}
+
+/* CONTROLS */
+
+.controls{
+display:flex;
+justify-content:space-between;
+align-items:center;
+background:var(--card);
+padding:10px;
+margin-bottom:20px;
+border-radius:6px;
+}
+
+.btn{
+background:var(--accent);
+padding:8px 15px;
+border-radius:4px;
+cursor:pointer;
+font-size:14px;
+}
+
+.loading{
+text-align:center;
+padding:50px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<nav>
+<a href="index.html" class="logo">JMCY<span>READER</span></a>
+</nav>
+
+<div class="reader">
+
+<div class="controls">
+
+<div class="btn" id="prev">Prev</div>
+
+<div id="chapter-title">Loading...</div>
+
+<div class="btn" id="next">Next</div>
+
+</div>
+
+<div id="pages">
+
+<div class="loading">Loading chapter...</div>
+
+</div>
+
+</div>
+
+<script>
+
+const params = new URLSearchParams(window.location.search);
+
+const chapterId = params.get("id");
+const mangaId = params.get("manga");
+
+const pagesContainer = document.getElementById("pages");
+const title = document.getElementById("chapter-title");
+
+let chapters = [];
+let currentIndex = 0;
+
+/* LOAD CHAPTER LIST */
+
+async function loadChapterList(){
+
+const res = await fetch(
+`https://api.mangadex.org/manga/${mangaId}/feed?translatedLanguage[]=en&order[chapter]=asc&limit=500`
+);
+
+const data = await res.json();
+
+chapters = data.data;
+
+currentIndex = chapters.findIndex(c=>c.id===chapterId);
+
+}
+
+/* LOAD CHAPTER PAGES */
+
+async function loadChapter(id){
+
+pagesContainer.innerHTML="<div class='loading'>Loading pages...</div>";
+
+const res = await fetch(
+`https://api.mangadex.org/at-home/server/${id}`
+);
+
+const data = await res.json();
+
+const base = data.baseUrl;
+const hash = data.chapter.hash;
+const pages = data.chapter.data;
+
+title.innerText =
+"Chapter " + (data.chapter.chapter || "?");
+
+pagesContainer.innerHTML="";
+
+pages.forEach(p=>{
+
+const img=document.createElement("img");
+
+img.src=`${base}/data/${hash}/${p}`;
+
+img.loading="lazy";
+
+const div=document.createElement("div");
+
+div.className="page";
+
+div.appendChild(img);
+
+pagesContainer.appendChild(div);
+
+});
+
+}
+
+/* NEXT CHAPTER */
+
+document.getElementById("next").onclick=()=>{
+
+if(currentIndex < chapters.length-1){
+
+currentIndex++;
+
+const id = chapters[currentIndex].id;
+
+window.location =
+`viewer.html?id=${id}&manga=${mangaId}`;
+
+}
+
+};
+
+/* PREV CHAPTER */
+
+document.getElementById("prev").onclick=()=>{
+
+if(currentIndex > 0){
+
+currentIndex--;
+
+const id = chapters[currentIndex].id;
+
+window.location =
+`viewer.html?id=${id}&manga=${mangaId}`;
+
+}
+
+};
+
+/* START */
+
+async function start(){
+
+if(!chapterId){
+
+pagesContainer.innerHTML="Chapter not found";
+return;
+
+}
+
+await loadChapterList();
+
+await loadChapter(chapterId);
+
+}
+
+start();
+
+</script>
+
+</body>
+</html>
