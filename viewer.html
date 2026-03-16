@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+
+<title>JMCY Reader | Viewer</title>
+
+<style>
+
+:root{
+--bg:#0b0d10;
+--card:#161921;
+--accent:#9b59b6;
+--text:#ffffff;
+}
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Inter,sans-serif;
+}
+
+body{
+background:var(--bg);
+color:var(--text);
+}
+
+/* NAV */
+
+nav{
+background:var(--card);
+padding:12px 5%;
+display:flex;
+justify-content:space-between;
+align-items:center;
+border-bottom:2px solid #1e293b;
+position:sticky;
+top:0;
+z-index:1000;
+}
+
+.logo{
+font-size:1.4rem;
+font-weight:800;
+color:white;
+text-decoration:none;
+}
+
+.logo span{
+color:var(--accent);
+}
+
+.back-btn{
+color:var(--accent);
+cursor:pointer;
+text-decoration:none;
+font-weight:bold;
+}
+
+/* READER */
+
+.reader-container{
+max-width:900px;
+margin:auto;
+padding:20px;
+}
+
+.page{
+margin-bottom:10px;
+display:flex;
+justify-content:center;
+}
+
+.page img{
+width:100%;
+max-width:900px;
+border-radius:6px;
+}
+
+/* LOADING */
+
+.loading{
+text-align:center;
+padding:50px;
+font-size:18px;
+}
+
+.error{
+text-align:center;
+padding:50px;
+color:#ff6b6b;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<nav>
+
+<a href="index.html" class="logo">
+JMCY<span>READER</span>
+</a>
+
+<a href="javascript:history.back()" class="back-btn">
+⬅ Back
+</a>
+
+</nav>
+
+<div class="reader-container" id="reader">
+
+<div class="loading">Loading chapter...</div>
+
+</div>
+
+<script>
+
+const params = new URLSearchParams(window.location.search);
+const chapterId = params.get("id");
+
+const reader = document.getElementById("reader");
+
+async function loadChapter(){
+
+if(!chapterId){
+
+reader.innerHTML="<div class='error'>No chapter selected</div>";
+return;
+
+}
+
+try{
+
+/* GET CHAPTER IMAGE SERVER */
+
+const serverRes = await fetch(
+`https://api.mangadex.org/at-home/server/${chapterId}`
+);
+
+const server = await serverRes.json();
+
+const baseUrl = server.baseUrl;
+const chapter = server.chapter;
+const hash = chapter.hash;
+const pages = chapter.data;
+
+/* CLEAR LOADING */
+
+reader.innerHTML="";
+
+/* CREATE PAGE IMAGES */
+
+pages.forEach(page => {
+
+const imgUrl =
+`${baseUrl}/data/${hash}/${page}`;
+
+const div = document.createElement("div");
+div.className="page";
+
+const img = document.createElement("img");
+img.src = imgUrl;
+img.loading="lazy";
+
+div.appendChild(img);
+reader.appendChild(div);
+
+});
+
+}
+
+catch(err){
+
+reader.innerHTML=`
+<div class="error">
+Failed to load chapter pages
+</div>
+`;
+
+}
+
+}
+
+loadChapter();
+
+</script>
+
+</body>
+</html>
