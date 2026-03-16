@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JMCY Reader | Stable Edition</title>
+    <meta name="referrer" content="no-referrer">
+    <title>JMCY Reader | Image Fix</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root { --bg: #0b0d10; --card: #161921; --accent: #9b59b6; --text: #ffffff; --muted: #94a3b8; }
@@ -54,32 +55,11 @@
         let offset = 0;
         const list = document.getElementById('manga-list');
         const debugContent = document.getElementById('debug-content');
-        
-        const proxies = [
-            (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-            (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`
-        ];
+        const proxy = "https://api.allorigins.win/get?url=";
 
         function logDebug(msg) { 
             debugContent.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`; 
             debugContent.scrollTop = debugContent.scrollHeight;
-        }
-
-        async function fetchWithRetry(url) {
-            for (let i = 0; i < proxies.length; i++) {
-                try {
-                    logDebug(`Trying Proxy ${i + 1}...`);
-                    const response = await fetch(proxies[i](url));
-                    if (!response.ok) throw new Error("Proxy Error");
-                    
-                    const data = await response.json();
-                    // Handle AllOrigins wrapping
-                    return data.contents ? JSON.parse(data.contents) : data;
-                } catch (e) {
-                    logDebug(`Proxy ${i + 1} failed.`);
-                }
-            }
-            throw new Error("All proxies failed.");
         }
 
         async function fetchManga(query = '') {
@@ -89,9 +69,10 @@
             if (query) apiUrl = `https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
 
             try {
-                const result = await fetchWithRetry(apiUrl);
-                logDebug(`Success! Found ${result.data.length} items.`);
-                
+                const response = await fetch(proxy + encodeURIComponent(apiUrl));
+                const outerData = await response.json();
+                const result = JSON.parse(outerData.contents);
+
                 if (offset === 0) list.innerHTML = '';
 
                 result.data.forEach(manga => {
@@ -99,14 +80,14 @@
                     const coverRel = manga.relationships.find(rel => rel.type === 'cover_art');
                     const fileName = coverRel ? coverRel.attributes.fileName : null;
                     
-                    // High-compatibility Image Proxy
-                    const rawCover = `uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg`;
-                    const imgUrl = fileName ? `https://wsrv.nl/?url=${rawCover}&output=jpg&q=70` : 'https://via.placeholder.com/250x350';
+                    // LAYER 2 IMAGE PROXY: This converts the MangaDex URL into a "clean" image request
+                    const rawCover = `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg`;
+                    const cleanCover = `https://wsrv.nl/?url=${rawCover.replace('https://', '')}`;
 
                     const card = document.createElement('div');
                     card.className = 'manga-card';
                     card.innerHTML = `
-                        <img src="${imgUrl}" alt="${title}" referrerpolicy="no-referrer">
+                        <img src="${fileName ? cleanCover : 'https://via.placeholder.com/250x350'}" alt="${title}">
                         <div class="manga-info">${title}</div>
                     `;
                     card.onclick = () => window.location.href = `reader.html?id=${manga.id}`;
@@ -116,7 +97,7 @@
                 offset += 12;
                 btn.innerText = "LOAD MORE";
             } catch (error) {
-                logDebug(`FATAL: ${error.message}`);
+                logDebug(`ERROR: ${error.message}`);
                 btn.innerText = "RETRY";
             }
         }
