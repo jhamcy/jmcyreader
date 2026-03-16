@@ -15,7 +15,7 @@
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { background: var(--bg); color: var(--text); line-height: 1.6; overflow-x: hidden; }
+        body { background: var(--bg); color: var(--text); line-height: 1.6; }
 
         nav {
             background: var(--card);
@@ -24,39 +24,23 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 2px solid #1e293b;
-            position: sticky; top: 0; z-index: 2000;
+            position: sticky; top: 0; z-index: 1000;
         }
         .logo { font-size: 1.5rem; font-weight: 800; text-decoration: none; color: white; }
         .logo span { color: var(--accent); }
 
-        /* Enhanced Search Dropdown */
-        .search-container { position: relative; width: 300px; }
-        .search-input {
-            width: 100%; background: #0b0d10; border: 1px solid #334155;
-            color: white; padding: 8px 15px; border-radius: 6px; outline: none;
+        .search-box {
+            display: flex; background: #0b0d10; border: 1px solid #334155;
+            border-radius: 6px; padding: 5px 10px; width: 300px; align-items: center;
         }
-        #search-dropdown {
-            position: absolute; top: 45px; left: 0; width: 100%;
-            background: var(--card); border: 1px solid #334155;
-            border-radius: 8px; display: none; z-index: 3000;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            max-height: 400px; overflow-y: auto;
+        .search-box input {
+            background: transparent; border: none; color: white;
+            padding: 5px; width: 100%; outline: none; font-size: 0.9rem;
         }
-        .search-result-item {
-            display: flex; gap: 12px; padding: 10px; border-bottom: 1px solid #1e293b;
-            cursor: pointer; transition: background 0.2s;
-        }
-        .search-result-item:hover { background: #1e293b; }
-        .search-result-item img { width: 40px; height: 55px; object-fit: cover; border-radius: 4px; }
 
         .wrapper {
             max-width: 1200px; margin: 20px auto; padding: 0 20px;
             display: grid; grid-template-columns: 1fr 300px; gap: 25px;
-        }
-
-        .section-title {
-            border-left: 4px solid var(--accent);
-            padding-left: 10px; margin: 20px 0; font-weight: 800; text-transform: uppercase;
         }
 
         .manga-grid {
@@ -68,8 +52,8 @@
             transition: 0.3s; cursor: pointer; border: 1px solid transparent;
         }
         .manga-card:hover { border-color: var(--accent); transform: translateY(-3px); }
-        .manga-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #000; }
-        .manga-info { padding: 10px; font-size: 0.85rem; }
+        .manga-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #222; }
+        .manga-info { padding: 10px; font-size: 0.85rem; text-align: center; font-weight: 600; }
 
         .load-more-btn {
             display: block; width: 200px; margin: 30px auto; padding: 12px;
@@ -79,7 +63,7 @@
 
         @media (max-width: 850px) {
             .wrapper { grid-template-columns: 1fr; }
-            .search-container { width: 180px; }
+            .search-box { width: 180px; }
         }
     </style>
 </head>
@@ -87,38 +71,24 @@
 
     <nav>
         <a href="index.html" class="logo">JMCY<span>READER</span></a>
-        <div class="search-container">
-            <input type="text" id="manga-search" class="search-input" placeholder="Search manhwa..." autocomplete="off">
-            <div id="search-dropdown"></div>
+        <div class="search-box">
+            <input type="text" id="manga-search" placeholder="Search title & press Enter...">
+            <i data-lucide="search" size="18" style="color: var(--muted)"></i>
         </div>
-        <div style="color: var(--muted); cursor: pointer;"><i data-lucide="bookmark"></i></div>
     </nav>
 
     <div class="wrapper">
         <main>
-            <div style="margin-bottom: 20px;">
-                <script async="async" data-cfasync="false" src="https://spreadpreferencetelevision.com/4c0ed34fba63006187eb212da78a33af/invoke.js"></script>
-                <div id="container-4c0ed34fba63006187eb212da78a33af"></div>
-            </div>
-
-            <h2 class="section-title">Latest Updates</h2>
+            <h2 id="grid-title" style="margin-bottom: 20px; text-transform: uppercase;">Latest Updates</h2>
             <div class="manga-grid" id="manga-list"></div>
             <button id="load-more" class="load-more-btn">LOAD MORE</button>
         </main>
 
         <aside>
-            <div style="background: var(--card); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <div style="background: var(--card); padding: 15px; border-radius: 8px;">
                 <div style="margin-bottom: 10px; font-weight: bold; color: var(--accent); font-size: 0.7rem;">SPONSORED</div>
                 <script async="async" data-cfasync="false" src="https://spreadpreferencetelevision.com/4c0ed34fba63006187eb212da78a33af/invoke.js"></script>
                 <div id="container-4c0ed34fba63006187eb212da78a33af"></div>
-            </div>
-            
-            <div style="background: var(--card); padding: 15px; border-radius: 8px;">
-                <h3 style="margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 5px; font-size: 1rem;">Popular Today</h3>
-                <div style="font-size: 0.85rem; color: var(--muted);">
-                    <p style="margin-bottom: 10px;">1. Solo Leveling</p>
-                    <p>2. Nano Machine</p>
-                </div>
             </div>
         </aside>
     </div>
@@ -126,78 +96,67 @@
     <script src="https://spreadpreferencetelevision.com/86/8d/1e/868d1eaa7d5b69adc9f351c0b95fb6f5.js"></script>
 
     <script>
-        let currentOffset = 0;
+        let offset = 0;
+        let isSearchMode = false;
+        const list = document.getElementById('manga-list');
         const searchInput = document.getElementById('manga-search');
-        const searchDropdown = document.getElementById('search-dropdown');
 
-        // Helper to get Cover URL
-        function getCoverUrl(manga) {
-            const coverRel = manga.relationships.find(rel => rel.type === 'cover_art');
-            const fileName = coverRel ? coverRel.attributes.fileName : null;
-            return fileName ? `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg` : 'https://via.placeholder.com/200x300';
-        }
-
-        // Live Search Logic
-        searchInput.addEventListener('input', async (e) => {
-            const query = e.target.value;
-            if (query.length < 3) { searchDropdown.style.display = 'none'; return; }
-
-            try {
-                const res = await fetch(`https://api.mangadex.org/manga?title=${query}&limit=5&includes[]=cover_art&contentRating[]=safe`);
-                const data = await res.json();
-                
-                searchDropdown.innerHTML = '';
-                searchDropdown.style.display = 'block';
-
-                data.data.forEach(manga => {
-                    const title = manga.attributes.title.en || Object.values(manga.attributes.title)[0];
-                    const item = document.createElement('div');
-                    item.className = 'search-result-item';
-                    item.innerHTML = `
-                        <img src="${getCoverUrl(manga)}">
-                        <div>
-                            <div style="font-weight: bold; font-size: 0.85rem;">${title}</div>
-                            <div style="font-size: 0.7rem; color: var(--accent);">Read Now</div>
-                        </div>
-                    `;
-                    item.onclick = () => window.location.href = `reader.html?id=${manga.id}`;
-                    searchDropdown.appendChild(item);
-                });
-            } catch (err) { console.error(err); }
-        });
-
-        // Load Grid Manga
-        async function loadManga(offset = 0) {
+        async function fetchManga(query = '') {
             const btn = document.getElementById('load-more');
             btn.innerText = "LOADING...";
+            
+            // Build API URL
+            let url = `https://api.mangadex.org/manga?limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
+            if (query) {
+                url += `&title=${encodeURIComponent(query)}`;
+                if (!isSearchMode) { list.innerHTML = ''; isSearchMode = true; offset = 0; }
+                document.getElementById('grid-title').innerText = `Results for: ${query}`;
+            }
+
             try {
-                // Removing contentRating filter for "safe" to see if it allows more results initially
-                const res = await fetch(`https://api.mangadex.org/manga?limit=12&offset=${offset}&includes[]=cover_art&order[relevance]=desc`);
-                const data = await res.json();
-                
-                const list = document.getElementById('manga-list');
-                data.data.forEach(manga => {
-                    const title = manga.attributes.title.en || "Unknown Title";
+                const response = await fetch(url);
+                const result = await response.json();
+
+                result.data.forEach(manga => {
+                    const title = manga.attributes.title.en || Object.values(manga.attributes.title)[0] || "Untitled";
+                    const coverRel = manga.relationships.find(rel => rel.type === 'cover_art');
+                    const fileName = coverRel ? coverRel.attributes.fileName : null;
+                    const coverUrl = fileName 
+                        ? `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg` 
+                        : 'https://via.placeholder.com/250x350/161921/FFFFFF?text=No+Cover';
+
                     const card = document.createElement('div');
                     card.className = 'manga-card';
                     card.innerHTML = `
-                        <img src="${getCoverUrl(manga)}" loading="lazy">
-                        <div class="manga-info"><div style="font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${title}</div></div>
+                        <img src="${coverUrl}" alt="${title}" onerror="this.src='https://via.placeholder.com/250x350/161921/FFFFFF?text=Error+Loading'">
+                        <div class="manga-info">${title}</div>
                     `;
                     card.onclick = () => window.location.href = `reader.html?id=${manga.id}`;
                     list.appendChild(card);
                 });
+
+                offset += 12;
                 btn.innerText = "LOAD MORE";
-                currentOffset += 12;
-            } catch (err) {
+                if (result.data.length < 12) btn.style.display = 'none';
+            } catch (error) {
+                console.error("API Error:", error);
                 btn.innerText = "ERROR LOADING";
             }
         }
 
-        // Init
-        loadManga(0);
-        document.getElementById('load-more').onclick = () => loadManga(currentOffset);
-        document.onclick = (e) => { if (e.target !== searchInput) searchDropdown.style.display = 'none'; };
+        // Initial Load
+        fetchManga();
+
+        // Search Trigger
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                offset = 0;
+                list.innerHTML = '';
+                fetchManga(searchInput.value);
+            }
+        });
+
+        document.getElementById('load-more').onclick = () => fetchManga(searchInput.value);
         lucide.createIcons();
     </script>
 </body>
