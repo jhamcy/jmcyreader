@@ -1,122 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JMCY Reader PRO</title>
 
-<title>JMCY Reader</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
-<style>
-
-:root{
---bg:#0b0d10;
---card:#161921;
---accent:#9b59b6;
---text:#ffffff;
-}
-
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Inter,sans-serif;
-}
-
-body{
-background:var(--bg);
-color:var(--text);
-}
-
-/* NAVBAR */
-
-nav{
-background:var(--card);
-padding:12px 5%;
-display:flex;
-justify-content:space-between;
-align-items:center;
-border-bottom:2px solid #1e293b;
-}
-
-.logo{
-font-size:1.5rem;
-font-weight:800;
-text-decoration:none;
-color:white;
-}
-
-.logo span{
-color:var(--accent);
-}
-
-/* SEARCH */
-
-.search{
-background:#0b0d10;
-border:1px solid #333;
-padding:8px 10px;
-border-radius:6px;
-color:white;
-width:200px;
-}
-
-/* WRAPPER */
-
-.wrapper{
-max-width:1200px;
-margin:auto;
-padding:20px;
-}
-
-/* GRID */
-
-.manga-grid{
-display:grid;
-grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
-gap:15px;
-}
-
-/* CARD */
-
-.manga-card{
-background:var(--card);
-border-radius:6px;
-overflow:hidden;
-cursor:pointer;
-transition:.2s;
-}
-
-.manga-card:hover{
-transform:translateY(-4px);
-}
-
-.manga-card img{
-width:100%;
-aspect-ratio:2/3;
-object-fit:cover;
-}
-
-.manga-title{
-padding:10px;
-font-size:14px;
-text-align:center;
-}
-
-.section-title{
-margin:30px 0 15px;
-font-size:20px;
-color:var(--accent);
-}
-
-.loading{
-text-align:center;
-padding:30px;
-color:#aaa;
-}
-
-</style>
+<link rel="stylesheet" href="style.css">
 
 </head>
 
@@ -124,169 +15,42 @@ color:#aaa;
 
 <nav>
 
-<a href="index.html" class="logo">
-JMCY<span>READER</span>
-</a>
-
-<input type="text" id="search" class="search" placeholder="Search manga...">
+<a class="logo">JMCY<span>READER</span></a>
 
 </nav>
 
-<div class="wrapper">
+<div class="container">
 
-<h2 class="section-title">Trending Manga</h2>
+<input class="search" id="searchBox" placeholder="Search manga...">
 
-<div class="manga-grid" id="trending"></div>
+<div class="section-title">Search Results</div>
+<div class="grid" id="searchResults"></div>
 
-<h2 class="section-title">Latest Manga</h2>
+<div class="section-title">Trending Manga</div>
+<div class="grid" id="trending"></div>
 
-<div class="manga-grid" id="manga-list"></div>
-
-<div class="loading" id="loading">Loading...</div>
+<div class="section-title">My Library</div>
+<div class="grid" id="library"></div>
 
 </div>
 
+<script src="app.js"></script>
+
 <script>
 
-let offset = 0
-let loading = false
-
-const list = document.getElementById("manga-list")
-
-/* TRENDING */
-
-async function loadTrending(){
-
-const res = await fetch(
-"https://api.mangadex.org/manga?limit=8&order[followedCount]=desc&includes[]=cover_art"
-)
-
-const data = await res.json()
-
-const box = document.getElementById("trending")
-
-data.data.forEach(manga=>{
-
-const title =
-manga.attributes.title.en ||
-Object.values(manga.attributes.title)[0]
-
-const coverRel =
-manga.relationships.find(r=>r.type==="cover_art")
-
-let cover=""
-
-if(coverRel){
-cover=
-`https://uploads.mangadex.org/covers/${manga.id}/${coverRel.attributes.fileName}.256.jpg`
-}
-
-const div=document.createElement("div")
-
-div.className="manga-card"
-
-div.innerHTML=`
-<img src="${cover}">
-<div class="manga-title">${title}</div>
-`
-
-div.onclick=()=>{
-window.location=`reader.html?id=${manga.id}`
-}
-
-box.appendChild(div)
-
-})
-
-}
-
-/* LOAD MANGA */
-
-async function fetchManga(query=""){
-
-if(loading) return
-loading=true
-
-let url=
-`https://api.mangadex.org/manga?limit=12&offset=${offset}&includes[]=cover_art&order[latestUploadedChapter]=desc`
-
-if(query){
-url=
-`https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=12&offset=${offset}&includes[]=cover_art`
-}
-
-const res = await fetch(url)
-const data = await res.json()
-
-data.data.forEach(manga=>{
-
-const title =
-manga.attributes.title.en ||
-Object.values(manga.attributes.title)[0]
-
-const coverRel =
-manga.relationships.find(r=>r.type==="cover_art")
-
-let cover="https://via.placeholder.com/250x350"
-
-if(coverRel){
-cover=
-`https://uploads.mangadex.org/covers/${manga.id}/${coverRel.attributes.fileName}.256.jpg`
-}
-
-const card=document.createElement("div")
-card.className="manga-card"
-
-card.innerHTML=`
-<img src="${cover}">
-<div class="manga-title">${title}</div>
-`
-
-card.onclick=()=>{
-window.location=`reader.html?id=${manga.id}`
-}
-
-list.appendChild(card)
-
-})
-
-offset += 12
-loading=false
-
-}
-
-/* INFINITE SCROLL */
-
-window.addEventListener("scroll",()=>{
-
-if(window.innerHeight + window.scrollY >= document.body.offsetHeight - 500){
-
-fetchManga(document.getElementById("search").value)
-
-}
-
-})
-
-/* SEARCH */
-
-document.getElementById("search").addEventListener("keypress",e=>{
-
-if(e.key==="Enter"){
-
-offset=0
-list.innerHTML=""
-fetchManga(e.target.value)
-
-}
-
-})
-
-/* START */
-
 loadTrending()
-fetchManga()
+loadLibrary()
+
+document.getElementById("searchBox").addEventListener("input",e=>{
+
+if(e.target.value.length>2){
+searchManga(e.target.value)
+}
+
+})
 
 </script>
 
 </body>
+
 </html>

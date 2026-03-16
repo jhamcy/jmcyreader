@@ -1,216 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
-<title>JMCY Reader</title>
+<title>Reader</title>
 
-<style>
-
-:root{
---bg:#0b0d10;
---card:#161921;
---accent:#9b59b6;
---text:#ffffff;
-}
-
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Inter,sans-serif;
-}
-
-body{
-background:var(--bg);
-color:var(--text);
-}
-
-/* NAVBAR */
-
-nav{
-background:var(--card);
-padding:12px 5%;
-display:flex;
-justify-content:space-between;
-border-bottom:2px solid #1e293b;
-}
-
-.logo{
-font-size:1.4rem;
-font-weight:800;
-text-decoration:none;
-color:white;
-}
-
-.logo span{
-color:var(--accent);
-}
-
-/* READER */
-
-.reader{
-max-width:900px;
-margin:auto;
-padding:20px;
-}
-
-.page{
-margin-bottom:12px;
-display:flex;
-justify-content:center;
-}
-
-.page img{
-width:100%;
-max-width:900px;
-border-radius:6px;
-background:#111;
-min-height:300px;
-}
-
-/* LOADING */
-
-.loading{
-text-align:center;
-padding:50px;
-}
-
-</style>
+<link rel="stylesheet" href="style.css">
 
 </head>
 
 <body>
 
 <nav>
-<a href="index.html" class="logo">JMCY<span>READER</span></a>
+<a href="javascript:history.back()" class="logo">⬅ Back</a>
 </nav>
 
-<div class="reader">
-
-<div id="pages">
-
-<div class="loading">
-Loading chapter...
-</div>
-
-</div>
-
-</div>
+<div id="pages"></div>
 
 <script>
 
-const params = new URLSearchParams(window.location.search);
-const chapterId = params.get("id");
+const chapterId=new URLSearchParams(location.search).get("id")
 
-const container = document.getElementById("pages");
+async function load(){
 
-let pageList = [];
-let base = "";
-let hash = "";
+const data=await fetch(`https://api.mangadex.org/at-home/server/${chapterId}`).then(r=>r.json())
 
-/* LOAD CHAPTER */
+const base=data.baseUrl
+const hash=data.chapter.hash
 
-async function loadChapter(){
+data.chapter.data.forEach(p=>{
 
-try{
+const img=document.createElement("img")
 
-const res = await fetch(
-`https://api.mangadex.org/at-home/server/${chapterId}`
-);
+img.src=`${base}/data/${hash}/${p}`
 
-const data = await res.json();
+img.className="reader-img"
 
-base = data.baseUrl;
-hash = data.chapter.hash;
-pageList = data.chapter.data;
+document.getElementById("pages").appendChild(img)
 
-container.innerHTML="";
-
-/* CREATE PLACEHOLDERS */
-
-pageList.forEach((p,i)=>{
-
-const div=document.createElement("div");
-div.className="page";
-
-const img=document.createElement("img");
-
-img.dataset.page=p;
-img.dataset.index=i;
-
-div.appendChild(img);
-container.appendChild(div);
-
-});
-
-/* START OBSERVER */
-
-startLazyLoading();
+})
 
 }
 
-catch(e){
-
-container.innerHTML=
-"<div class='loading'>Failed to load chapter</div>";
-
-}
-
-}
-
-/* LAZY LOADING */
-
-function startLazyLoading(){
-
-const images=document.querySelectorAll("img");
-
-const observer=new IntersectionObserver(entries=>{
-
-entries.forEach(entry=>{
-
-if(entry.isIntersecting){
-
-const img=entry.target;
-const page=img.dataset.page;
-
-/* FAST DATA SAVER */
-
-img.src=`${base}/data-saver/${hash}/${page}`;
-
-/* FALLBACK FULL IMAGE */
-
-img.onerror=()=>{
-img.src=`${base}/data/${hash}/${page}`;
-};
-
-img.decoding="async";
-img.loading="lazy";
-
-observer.unobserve(img);
-
-}
-
-});
-
-},{
-rootMargin:"500px"
-});
-
-images.forEach(img=>{
-observer.observe(img);
-});
-
-}
-
-/* START */
-
-loadChapter();
+load()
 
 </script>
 
 </body>
+
 </html>
