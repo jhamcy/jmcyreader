@@ -47,7 +47,6 @@
             border-radius: 6px; cursor: pointer; font-weight: 800; 
         }
 
-        /* Debug UI */
         #debug-toggle { 
             position: fixed; bottom: 20px; right: 20px; background: #e74c3c; 
             color: white; border: none; width: 50px; height: 50px; 
@@ -98,7 +97,7 @@
         let offset = 0;
         const list = document.getElementById('manga-list');
         const debugContent = document.getElementById('debug-content');
-        const proxy = "https://api.allorigins.win/get?url=";
+        const apiProxy = "https://api.allorigins.win/get?url=";
 
         function logDebug(msg) { 
             debugContent.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`; 
@@ -112,9 +111,9 @@
             let apiUrl = `https://api.mangadex.org/manga?limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive&order[followedCount]=desc`;
             if (query) apiUrl = `https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
 
-            logDebug(`Attempting fetch...`);
+            logDebug(`Attempting API fetch...`);
             try {
-                const response = await fetch(proxy + encodeURIComponent(apiUrl));
+                const response = await fetch(apiProxy + encodeURIComponent(apiUrl));
                 const outerData = await response.json();
                 const result = JSON.parse(outerData.contents);
 
@@ -131,15 +130,18 @@
                     const coverRel = manga.relationships.find(rel => rel.type === 'cover_art');
                     const fileName = coverRel ? coverRel.attributes.fileName : null;
                     
-                    // Route images through weserv proxy to bypass browser blocking
-                    const coverUrl = fileName 
-                        ? `https://images.weserv.nl/?url=uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg` 
-                        : 'https://via.placeholder.com/250x350?text=No+Cover';
+                    // Fixed Image Proxy Logic
+                    const rawUrl = `uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg`;
+                    const proxiedCover = fileName ? `https://images.weserv.nl/?url=${rawUrl}` : 'https://via.placeholder.com/250x350?text=No+Cover';
 
                     const card = document.createElement('div');
                     card.className = 'manga-card';
                     card.innerHTML = `
-                        <img src="${coverUrl}" alt="${title}" loading="lazy">
+                        <img src="${proxiedCover}" 
+                             alt="${title}" 
+                             loading="lazy" 
+                             referrerpolicy="no-referrer"
+                             onerror="this.onerror=null;this.src='https://uploads.mangadex.org/${rawUrl}';">
                         <div class="manga-info">${title}</div>
                     `;
                     card.onclick = () => window.location.href = `reader.html?id=${manga.id}`;
@@ -148,7 +150,6 @@
 
                 offset += 12;
                 btn.innerText = "LOAD MORE";
-                if (result.data.length < 12) btn.style.display = 'none';
                 
             } catch (error) {
                 logDebug(`ERROR: ${error.message}`);
@@ -156,22 +157,17 @@
             }
         }
 
-        // UI Handlers
         document.getElementById('debug-toggle').onclick = () => {
             const panel = document.getElementById('debug-panel');
             panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
         };
 
         document.getElementById('manga-search').onkeypress = (e) => { 
-            if (e.key === 'Enter') { 
-                offset = 0; 
-                fetchManga(e.target.value); 
-            } 
+            if (e.key === 'Enter') { offset = 0; fetchManga(e.target.value); } 
         };
 
         document.getElementById('load-more').onclick = () => fetchManga(document.getElementById('manga-search').value);
         
-        // Initial Fetch
         fetchManga();
         lucide.createIcons();
     </script>
