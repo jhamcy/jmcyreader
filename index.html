@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JMCY Reader | Free Manhwa</title>
+    <title>JMCY Reader | Debug Edition</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
@@ -17,7 +17,6 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         body { background: var(--bg); color: var(--text); line-height: 1.6; }
 
-        /* Navbar */
         nav {
             background: var(--card); padding: 10px 5%;
             display: flex; justify-content: space-between; align-items: center;
@@ -35,15 +34,9 @@
             padding: 5px; width: 100%; outline: none; font-size: 0.9rem;
         }
 
-        /* Layout */
         .wrapper {
             max-width: 1200px; margin: 20px auto; padding: 0 20px;
             display: grid; grid-template-columns: 1fr 300px; gap: 25px;
-        }
-
-        .section-title {
-            border-left: 4px solid var(--accent);
-            padding-left: 10px; margin-bottom: 20px; font-weight: 800; text-transform: uppercase;
         }
 
         .manga-grid {
@@ -64,6 +57,23 @@
             border-radius: 6px; cursor: pointer; font-weight: 800;
         }
 
+        /* Debug Button & Panel */
+        #debug-toggle {
+            position: fixed; bottom: 20px; right: 20px; 
+            background: #e74c3c; color: white; border: none;
+            width: 50px; height: 50px; border-radius: 50%;
+            cursor: pointer; z-index: 9999; display: flex;
+            align-items: center; justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        #debug-panel {
+            position: fixed; bottom: 80px; right: 20px;
+            width: 320px; height: 400px; background: #000;
+            color: #0f0; font-family: monospace; font-size: 11px;
+            padding: 15px; border-radius: 8px; border: 1px solid #333;
+            overflow-y: auto; display: none; z-index: 9999;
+        }
+
         @media (max-width: 850px) {
             .wrapper { grid-template-columns: 1fr; }
             .search-box { width: 180px; }
@@ -81,14 +91,9 @@
 
     <div class="wrapper">
         <main>
-            <div style="margin-bottom: 20px;">
-                <script async="async" data-cfasync="false" src="https://spreadpreferencetelevision.com/4c0ed34fba63006187eb212da78a33af/invoke.js"></script>
-                <div id="container-4c0ed34fba63006187eb212da78a33af"></div>
-            </div>
-
             <h2 class="section-title">Latest Updates</h2>
             <div class="manga-grid" id="manga-list">
-                <p style="grid-column: 1/-1; text-align: center; color: var(--muted);">Loading Manga...</p>
+                <p style="grid-column: 1/-1; text-align: center; color: var(--muted);">Checking API Connection...</p>
             </div>
             <button id="load-more" class="load-more-btn">LOAD MORE</button>
         </main>
@@ -102,45 +107,57 @@
         </aside>
     </div>
 
+    <button id="debug-toggle"><i data-lucide="bug"></i></button>
+    <div id="debug-panel"><strong>DEBUG CONSOLE:</strong><hr style="margin: 10px 0; opacity: 0.3;"><div id="debug-content"></div></div>
+
     <script src="https://spreadpreferencetelevision.com/86/8d/1e/868d1eaa7d5b69adc9f351c0b95fb6f5.js"></script>
 
     <script>
         let offset = 0;
         const list = document.getElementById('manga-list');
+        const debugContent = document.getElementById('debug-content');
+
+        function logDebug(msg, data = null) {
+            const timestamp = new Date().toLocaleTimeString();
+            debugContent.innerHTML += `<div style="margin-bottom:8px">[${timestamp}] ${msg}</div>`;
+            if(data) debugContent.innerHTML += `<pre style="color:#aaa; white-space:pre-wrap;">${JSON.stringify(data, null, 2)}</pre>`;
+            console.log(msg, data);
+        }
 
         async function fetchManga(query = '') {
             const btn = document.getElementById('load-more');
             btn.innerText = "LOADING...";
             
-            // Fixed URL logic: fetching both safe and suggestive ensures a full grid
             let url = `https://api.mangadex.org/manga?limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive&order[followedCount]=desc`;
-            
-            if (query) {
-                url = `https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
-                if(offset === 0) list.innerHTML = '';
-            }
+            if (query) url = `https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
+
+            logDebug(`Fetching URL: ${url}`);
 
             try {
                 const response = await fetch(url);
-                if (!response.ok) throw new Error("API Limit reached");
+                logDebug(`Response Status: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    throw new Error(`API Response: ${response.status}`);
+                }
+
                 const result = await response.json();
+                logDebug(`Data Received: ${result.data.length} items found.`);
 
                 if (offset === 0) list.innerHTML = '';
 
-                result.data.forEach(manga => {
+                result.data.forEach((manga, index) => {
                     const title = manga.attributes.title.en || Object.values(manga.attributes.title)[0] || "Untitled";
                     const coverRel = manga.relationships.find(rel => rel.type === 'cover_art');
                     const fileName = coverRel ? coverRel.attributes.fileName : null;
-                    
-                    // Fixed Image URL
-                    const coverUrl = fileName 
-                        ? `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg` 
-                        : 'https://via.placeholder.com/250x350';
+                    const coverUrl = fileName ? `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg` : 'https://via.placeholder.com/250x350';
+
+                    if(index === 0) logDebug(`Sample Cover URL: ${coverUrl}`);
 
                     const card = document.createElement('div');
                     card.className = 'manga-card';
                     card.innerHTML = `
-                        <img src="${coverUrl}" alt="${title}" referrerpolicy="no-referrer">
+                        <img src="${coverUrl}" alt="${title}" referrerpolicy="no-referrer" onerror="this.src='https://via.placeholder.com/250x350?text=Blocked';">
                         <div class="manga-info">${title}</div>
                     `;
                     card.onclick = () => window.location.href = `reader.html?id=${manga.id}`;
@@ -150,14 +167,21 @@
                 offset += 12;
                 btn.innerText = "LOAD MORE";
             } catch (error) {
-                list.innerHTML = `<div style="grid-column: 1/-1; text-align: center;"><p>Connection Error</p><button onclick="location.reload()" class="load-more-btn">REFRESH PAGE</button></div>`;
+                logDebug(`FATAL ERROR: ${error.message}`);
+                list.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #e74c3c;">Connection Error. Click the Red Bug icon for details.</p>`;
             }
         }
 
-        // Search Trigger
+        // UI Controls
+        document.getElementById('debug-toggle').onclick = () => {
+            const panel = document.getElementById('debug-panel');
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        };
+
         document.getElementById('manga-search').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 offset = 0;
+                logDebug(`Searching for: ${e.target.value}`);
                 fetchManga(e.target.value);
             }
         });
