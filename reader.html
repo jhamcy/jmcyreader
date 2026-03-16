@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JMCY Reader</title>
+<title>JMCY Reader | Manga</title>
 
 <style>
 
@@ -36,7 +37,7 @@ border-bottom:2px solid #1e293b;
 }
 
 .logo{
-font-size:1.4rem;
+font-size:1.5rem;
 font-weight:800;
 text-decoration:none;
 color:white;
@@ -54,7 +55,7 @@ margin:auto;
 padding:20px;
 }
 
-/* HEADER */
+/* MANGA HEADER */
 
 .manga-header{
 display:flex;
@@ -63,11 +64,40 @@ background:var(--card);
 padding:20px;
 border-radius:8px;
 margin-bottom:20px;
+flex-wrap:wrap;
 }
 
 .manga-header img{
-width:160px;
+width:180px;
 border-radius:6px;
+aspect-ratio:2/3;
+object-fit:cover;
+}
+
+.manga-details h1{
+margin-bottom:10px;
+color:var(--accent);
+}
+
+.manga-details p{
+font-size:0.9rem;
+color:var(--muted);
+display:-webkit-box;
+-webkit-line-clamp:5;
+-webkit-box-orient:vertical;
+overflow:hidden;
+}
+
+/* CONTINUE BUTTON */
+
+#continueBtn{
+margin:10px 0 20px;
+padding:10px 15px;
+background:var(--accent);
+border:none;
+color:white;
+border-radius:6px;
+cursor:pointer;
 }
 
 /* CHAPTER LIST */
@@ -78,19 +108,33 @@ border-radius:8px;
 overflow:hidden;
 }
 
-.chapter{
+.chapter-item{
+display:flex;
+justify-content:space-between;
 padding:15px 20px;
 border-bottom:1px solid #1e293b;
 cursor:pointer;
+transition:0.2s;
 }
 
-.chapter:hover{
+.chapter-item:hover{
 background:#1e293b;
+color:var(--accent);
+}
+
+.chapter-item:last-child{
+border-bottom:none;
 }
 
 .loading{
 text-align:center;
 padding:50px;
+color:#aaa;
+}
+
+@media(max-width:600px){
+.manga-header{flex-direction:column;align-items:center;text-align:center;}
+.manga-header img{width:150px;}
 }
 
 </style>
@@ -102,142 +146,108 @@ padding:50px;
 <a href="index.html" class="logo">JMCY<span>READER</span></a>
 </nav>
 
-<div class="container" id="app">
+<div class="container" id="main-content">
 
-<div class="loading">Loading manga...</div>
+<div class="loading">Fetching manga data...</div>
 
 </div>
 
 <script>
 
-const params = new URLSearchParams(window.location.search);
-const mangaId = params.get("id");
+const params = new URLSearchParams(window.location.search)
+const mangaId = params.get("id")
+const container = document.getElementById("main-content")
 
-const app = document.getElementById("app");
-
-/* PROXY */
-
-function proxy(url){
-return "https://corsproxy.io/?"+encodeURIComponent(url);
+if(!mangaId){
+container.innerHTML="<h1>No manga selected</h1>"
 }
 
-/* LOAD MANGA */
+async function fetchWithProxy(url){
+const proxy="https://corsproxy.io/?"+encodeURIComponent(url)
+const res = await fetch(proxy)
+const data = await res.json()
+return data.contents ? JSON.parse(data.contents) : data
+}
 
 async function loadManga(){
 
 try{
 
+/* FETCH MANGA DETAILS */
+const mangaUrl = `https://api.mangadex.org/manga/${mangaId}?includes[]=cover_art`
+const feedUrl  = `https://api.mangadex.org/manga/${mangaId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=50`
+
+const [manga, feed] = await Promise.all([
+fetchWithProxy(mangaUrl),
+fetchWithProxy(feedUrl)
+])
+
+const mangaData = manga.data
+const feedData = feed.data
+
 /* MANGA INFO */
+const title = mangaData.attributes.title.en || Object.values(mangaData.attributes.title)[0] || "Untitled"
+const desc = mangaData.attributes.description.en || "No description available."
+const coverRel = mangaData.relationships.find(r=>r.type==="cover_art")
+const cover = coverRel ? `https://uploads.mangadex.org/covers/${mangaId}/${coverRel.attributes.fileName}.256.jpg` : 'https://via.placeholder.com/250x350'
 
-const mangaRes = await fetch(proxy(
-`https://api.mangadex.org/manga/${mangaId}?includes[]=cover_art`
-));
-
-const manga = await mangaRes.json();
-
-const mangaData = manga.contents ? JSON.parse(manga.contents) : manga;
-
-/* CHAPTER FEED */
-
-const feedRes = await fetch(proxy(
-`https://api.mangadex.org/manga/${mangaId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=100`
-));
-
-const feed = await feedRes.json();
-
-const feedData = feed.contents ? JSON.parse(feed.contents) : feed;
-
-/* TITLE */
-
-const title =
-mangaData.data.attributes.title.en ||
-Object.values(mangaData.data.attributes.title)[0];
-
-/* DESCRIPTION */
-
-const desc =
-mangaData.data.attributes.description.en ||
-"No description";
-
-/* COVER */
-
-const coverRel =
-mangaData.data.relationships.find(r=>r.type==="cover_art");
-
-let cover="";
-
-if(coverRel){
-cover=
-`https://uploads.mangadex.org/covers/${mangaId}/${coverRel.attributes.fileName}.256.jpg`;
-}
-
-/* BUILD UI */
-
-app.innerHTML=`
-
+/* BUILD HEADER */
+container.innerHTML=`
 <div class="manga-header">
-
-<img src="${cover}">
-
-<div>
-
+<img src="${cover}" alt="${title}">
+<div class="manga-details">
 <h1>${title}</h1>
-
-<p style="color:var(--muted);font-size:14px;margin-top:10px">
-${desc}
-</p>
-
+<p>${desc}</p>
+</div>
 </div>
 
-</div>
+<button id="continueBtn">Continue Reading</button>
 
 <div class="chapter-list" id="chapters"></div>
+`
 
-`;
+const chapterContainer = document.getElementById("chapters")
 
-const chapterBox=document.getElementById("chapters");
+/* CONTINUE READING */
+const last = localStorage.getItem("reading_"+mangaId)
+const continueBtn = document.getElementById("continueBtn")
 
-/* CHAPTERS */
+if(last){
+continueBtn.onclick = ()=> window.location=`viewer.html?id=${last}&manga=${mangaId}`
+}else{
+continueBtn.style.display="none"
+}
 
-feedData.data.forEach(ch=>{
+/* CHAPTER LIST */
+if(feedData.length===0){
+chapterContainer.innerHTML="<div style='padding:20px'>No English chapters found.</div>"
+return
+}
 
-const num = ch.attributes.chapter || "?";
+feedData.forEach(chap=>{
+const cNum = chap.attributes.chapter || "?"
+const cTitle = chap.attributes.title || `Chapter ${cNum}`
 
-const div=document.createElement("div");
+const item = document.createElement("div")
+item.className="chapter-item"
+item.innerHTML=`
+<span>Chapter ${cNum}</span>
+<span style="color:var(--muted); font-size:0.8rem">${cTitle}</span>
+`
+item.onclick = ()=>{
+localStorage.setItem("reading_"+mangaId, chap.id)
+window.location=`viewer.html?id=${chap.id}&manga=${mangaId}`
+}
+chapterContainer.appendChild(item)
+})
 
-div.className="chapter";
-
-div.innerText="Chapter "+num;
-
-div.onclick=()=>{
-
-window.location =
-`viewer.html?id=${ch.id}&manga=${mangaId}`;
-
-};
-
-chapterBox.appendChild(div);
-
-});
+}catch(err){
+container.innerHTML=`<div class="loading"><h1>Error loading manga</h1><p>${err.message}</p></div>`
+}
 
 }
 
-catch(e){
-
-app.innerHTML=`
-<div class="loading">
-
-<h1>Error loading chapters</h1>
-<p>Failed to fetch</p>
-
-</div>
-`;
-
-}
-
-}
-
-loadManga();
+loadManga()
 
 </script>
 
