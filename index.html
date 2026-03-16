@@ -3,79 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JMCY Reader | Fix Edition</title>
+    <title>JMCY Reader | Stable Edition</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root { --bg: #0b0d10; --card: #161921; --accent: #9b59b6; --text: #ffffff; --muted: #94a3b8; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         body { background: var(--bg); color: var(--text); line-height: 1.6; }
-        
-        nav { 
-            background: var(--card); padding: 10px 5%; display: flex; 
-            justify-content: space-between; align-items: center; 
-            border-bottom: 2px solid #1e293b; position: sticky; top: 0; z-index: 1000; 
-        }
+        nav { background: var(--card); padding: 10px 5%; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1e293b; position: sticky; top: 0; z-index: 1000; }
         .logo { font-size: 1.5rem; font-weight: 800; text-decoration: none; color: white; }
         .logo span { color: var(--accent); }
-        
-        .search-box { 
-            display: flex; background: #0b0d10; border: 1px solid #334155; 
-            border-radius: 6px; padding: 5px 10px; width: 300px; align-items: center; 
-        }
-        .search-box input { 
-            background: transparent; border: none; color: white; 
-            padding: 5px; width: 100%; outline: none; font-size: 0.9rem; 
-        }
-        
-        .wrapper { 
-            max-width: 1200px; margin: 20px auto; padding: 0 20px; 
-            display: grid; grid-template-columns: 1fr 300px; gap: 25px; 
-        }
+        .search-box { display: flex; background: #0b0d10; border: 1px solid #334155; border-radius: 6px; padding: 5px 10px; width: 300px; align-items: center; }
+        .search-box input { background: transparent; border: none; color: white; padding: 5px; width: 100%; outline: none; font-size: 0.9rem; }
+        .wrapper { max-width: 1200px; margin: 20px auto; padding: 0 20px; display: grid; grid-template-columns: 1fr 300px; gap: 25px; }
         .manga-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
-        
-        .manga-card { 
-            background: var(--card); border-radius: 6px; overflow: hidden; 
-            transition: 0.3s; cursor: pointer; border: 1px solid transparent; 
-        }
+        .manga-card { background: var(--card); border-radius: 6px; overflow: hidden; transition: 0.3s; cursor: pointer; border: 1px solid transparent; }
         .manga-card:hover { border-color: var(--accent); transform: translateY(-3px); }
         .manga-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #222; }
         .manga-info { padding: 10px; font-size: 0.85rem; text-align: center; font-weight: 600; }
-        
-        .load-more-btn { 
-            display: block; width: 200px; margin: 30px auto; padding: 12px; 
-            background: var(--accent); color: white; border: none; 
-            border-radius: 6px; cursor: pointer; font-weight: 800; 
-        }
-
-        #debug-toggle { 
-            position: fixed; bottom: 20px; right: 20px; background: #e74c3c; 
-            color: white; border: none; width: 50px; height: 50px; 
-            border-radius: 50%; cursor: pointer; z-index: 9999; 
-            display: flex; align-items: center; justify-content: center; 
-        }
-        #debug-panel { 
-            position: fixed; bottom: 80px; right: 20px; width: 320px; 
-            height: 400px; background: #000; color: #0f0; 
-            font-family: monospace; font-size: 11px; padding: 15px; 
-            border-radius: 8px; border: 1px solid #333; overflow-y: auto; 
-            display: none; z-index: 9999; 
-        }
-
+        .load-more-btn { display: block; width: 200px; margin: 30px auto; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 800; }
+        #debug-toggle { position: fixed; bottom: 20px; right: 20px; background: #e74c3c; color: white; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        #debug-panel { position: fixed; bottom: 80px; right: 20px; width: 320px; height: 400px; background: #000; color: #0f0; font-family: monospace; font-size: 11px; padding: 15px; border-radius: 8px; border: 1px solid #333; overflow-y: auto; display: none; z-index: 9999; }
         @media (max-width: 850px) { .wrapper { grid-template-columns: 1fr; } .search-box { width: 180px; } }
     </style>
 </head>
 <body>
-
     <nav>
         <a href="index.html" class="logo">JMCY<span>READER</span></a>
-        <div class="search-box">
-            <input type="text" id="manga-search" placeholder="Search and press Enter...">
-        </div>
+        <div class="search-box"><input type="text" id="manga-search" placeholder="Search and press Enter..."></div>
     </nav>
-
     <div class="wrapper">
         <main>
-            <h2 id="grid-title" style="margin-bottom: 20px; text-transform: uppercase;">Latest Updates</h2>
+            <h2 style="margin-bottom: 20px; text-transform: uppercase;">Latest Updates</h2>
             <div class="manga-grid" id="manga-list"></div>
             <button id="load-more" class="load-more-btn">LOAD MORE</button>
         </main>
@@ -86,7 +44,6 @@
             </div>
         </aside>
     </div>
-
     <button id="debug-toggle"><i data-lucide="bug"></i></button>
     <div id="debug-panel"><strong>DEBUG CONSOLE:</strong><hr style="margin: 10px 0; opacity: 0.3;"><div id="debug-content"></div></div>
 
@@ -97,32 +54,44 @@
         let offset = 0;
         const list = document.getElementById('manga-list');
         const debugContent = document.getElementById('debug-content');
-        const apiProxy = "https://api.allorigins.win/get?url=";
+        
+        const proxies = [
+            (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+            (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`
+        ];
 
         function logDebug(msg) { 
             debugContent.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`; 
             debugContent.scrollTop = debugContent.scrollHeight;
         }
 
+        async function fetchWithRetry(url) {
+            for (let i = 0; i < proxies.length; i++) {
+                try {
+                    logDebug(`Trying Proxy ${i + 1}...`);
+                    const response = await fetch(proxies[i](url));
+                    if (!response.ok) throw new Error("Proxy Error");
+                    
+                    const data = await response.json();
+                    // Handle AllOrigins wrapping
+                    return data.contents ? JSON.parse(data.contents) : data;
+                } catch (e) {
+                    logDebug(`Proxy ${i + 1} failed.`);
+                }
+            }
+            throw new Error("All proxies failed.");
+        }
+
         async function fetchManga(query = '') {
             const btn = document.getElementById('load-more');
             btn.innerText = "LOADING...";
-            
             let apiUrl = `https://api.mangadex.org/manga?limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive&order[followedCount]=desc`;
             if (query) apiUrl = `https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
 
-            logDebug(`Attempting API fetch...`);
             try {
-                const response = await fetch(apiProxy + encodeURIComponent(apiUrl));
-                const outerData = await response.json();
-                const result = JSON.parse(outerData.contents);
-
-                if (!result || !result.data) {
-                    logDebug("ERROR: Data format unexpected.");
-                    return;
-                }
-
-                logDebug(`Found ${result.data.length} items.`);
+                const result = await fetchWithRetry(apiUrl);
+                logDebug(`Success! Found ${result.data.length} items.`);
+                
                 if (offset === 0) list.innerHTML = '';
 
                 result.data.forEach(manga => {
@@ -130,18 +99,14 @@
                     const coverRel = manga.relationships.find(rel => rel.type === 'cover_art');
                     const fileName = coverRel ? coverRel.attributes.fileName : null;
                     
-                    // Fixed Image Proxy Logic
-                    const rawUrl = `uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg`;
-                    const proxiedCover = fileName ? `https://images.weserv.nl/?url=${rawUrl}` : 'https://via.placeholder.com/250x350?text=No+Cover';
+                    // High-compatibility Image Proxy
+                    const rawCover = `uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg`;
+                    const imgUrl = fileName ? `https://wsrv.nl/?url=${rawCover}&output=jpg&q=70` : 'https://via.placeholder.com/250x350';
 
                     const card = document.createElement('div');
                     card.className = 'manga-card';
                     card.innerHTML = `
-                        <img src="${proxiedCover}" 
-                             alt="${title}" 
-                             loading="lazy" 
-                             referrerpolicy="no-referrer"
-                             onerror="this.onerror=null;this.src='https://uploads.mangadex.org/${rawUrl}';">
+                        <img src="${imgUrl}" alt="${title}" referrerpolicy="no-referrer">
                         <div class="manga-info">${title}</div>
                     `;
                     card.onclick = () => window.location.href = `reader.html?id=${manga.id}`;
@@ -150,9 +115,8 @@
 
                 offset += 12;
                 btn.innerText = "LOAD MORE";
-                
             } catch (error) {
-                logDebug(`ERROR: ${error.message}`);
+                logDebug(`FATAL: ${error.message}`);
                 btn.innerText = "RETRY";
             }
         }
@@ -161,11 +125,7 @@
             const panel = document.getElementById('debug-panel');
             panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
         };
-
-        document.getElementById('manga-search').onkeypress = (e) => { 
-            if (e.key === 'Enter') { offset = 0; fetchManga(e.target.value); } 
-        };
-
+        document.getElementById('manga-search').onkeypress = (e) => { if (e.key === 'Enter') { offset = 0; fetchManga(e.target.value); } };
         document.getElementById('load-more').onclick = () => fetchManga(document.getElementById('manga-search').value);
         
         fetchManga();
