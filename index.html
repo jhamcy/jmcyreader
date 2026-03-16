@@ -18,13 +18,9 @@
         body { background: var(--bg); color: var(--text); line-height: 1.6; }
 
         nav {
-            background: var(--card);
-            padding: 10px 5%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #1e293b;
-            position: sticky; top: 0; z-index: 1000;
+            background: var(--card); padding: 10px 5%;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid #1e293b; position: sticky; top: 0; z-index: 1000;
         }
         .logo { font-size: 1.5rem; font-weight: 800; text-decoration: none; color: white; }
         .logo span { color: var(--accent); }
@@ -52,10 +48,7 @@
             transition: 0.3s; cursor: pointer; border: 1px solid transparent;
         }
         .manga-card:hover { border-color: var(--accent); transform: translateY(-3px); }
-        .manga-card img { 
-            width: 100%; aspect-ratio: 2/3; object-fit: cover; 
-            background: #222; display: block; min-height: 240px;
-        }
+        .manga-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #222; }
         .manga-info { padding: 10px; font-size: 0.85rem; text-align: center; font-weight: 600; }
 
         .load-more-btn {
@@ -76,7 +69,6 @@
         <a href="index.html" class="logo">JMCY<span>READER</span></a>
         <div class="search-box">
             <input type="text" id="manga-search" placeholder="Search title & press Enter...">
-            <i data-lucide="search" size="18" style="color: var(--muted)"></i>
         </div>
     </nav>
 
@@ -103,41 +95,41 @@
         const list = document.getElementById('manga-list');
         const searchInput = document.getElementById('manga-search');
 
+        // This proxy helps bypass browser blocks on GitHub Pages
+        const proxy = "https://images.weserv.nl/?url=";
+
         async function fetchManga(query = '') {
             const btn = document.getElementById('load-more');
             btn.innerText = "LOADING...";
             
-            // Build API URL - specifically asking for cover_art and using a popular sort
             let url = `https://api.mangadex.org/manga?limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive&order[followedCount]=desc`;
             
             if (query) {
                 url = `https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
                 document.getElementById('grid-title').innerText = `Results for: ${query}`;
+                if(offset === 0) list.innerHTML = '';
             }
 
             try {
                 const response = await fetch(url);
                 const result = await response.json();
 
-                if (offset === 0 && query) list.innerHTML = '';
-
                 result.data.forEach(manga => {
                     const title = manga.attributes.title.en || Object.values(manga.attributes.title)[0] || "Untitled";
-                    
-                    // Locate the cover art in the relationships array
                     const coverRel = manga.relationships.find(rel => rel.type === 'cover_art');
-                    const fileName = coverRel && coverRel.attributes ? coverRel.attributes.fileName : null;
+                    const fileName = coverRel ? coverRel.attributes.fileName : null;
                     
-                    // Use a slightly different thumbnail size (.256.jpg) to help with loading speed
-                    const coverUrl = fileName 
+                    // Route through the weserv.nl proxy to force the image to display
+                    const rawUrl = fileName 
                         ? `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg` 
-                        : 'https://via.placeholder.com/256x360/161921/FFFFFF?text=No+Cover';
+                        : 'https://via.placeholder.com/250x350';
+                    
+                    const coverUrl = fileName ? `${proxy}${rawUrl.replace('https://', '')}` : rawUrl;
 
                     const card = document.createElement('div');
                     card.className = 'manga-card';
                     card.innerHTML = `
-                        <img src="${coverUrl}" alt="${title}" loading="lazy" 
-                             onerror="this.onerror=null; this.src='https://via.placeholder.com/256x360/161921/FFFFFF?text=Image+Blocked';">
+                        <img src="${coverUrl}" alt="${title}">
                         <div class="manga-info">${title}</div>
                     `;
                     card.onclick = () => window.location.href = `reader.html?id=${manga.id}`;
@@ -146,27 +138,14 @@
 
                 offset += 12;
                 btn.innerText = "LOAD MORE";
-                if (result.data.length === 0 && offset === 12) {
-                    list.innerHTML = `<p style="grid-column: 1/-1; text-align: center;">No results found. Try another title!</p>`;
-                }
             } catch (error) {
                 console.error("API Error:", error);
                 btn.innerText = "ERROR LOADING";
             }
         }
 
-        // Initial Load
         fetchManga();
-
-        // Search Trigger
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                offset = 0;
-                list.innerHTML = '';
-                fetchManga(searchInput.value);
-            }
-        });
-
+        searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { offset = 0; fetchManga(searchInput.value); } });
         document.getElementById('load-more').onclick = () => fetchManga(searchInput.value);
         lucide.createIcons();
     </script>
