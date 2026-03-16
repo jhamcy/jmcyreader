@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JMCY Reader | Debug Edition</title>
+    <title>JMCY Reader | Unblocked</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
@@ -57,14 +57,12 @@
             border-radius: 6px; cursor: pointer; font-weight: 800;
         }
 
-        /* Debug Button & Panel */
         #debug-toggle {
             position: fixed; bottom: 20px; right: 20px; 
             background: #e74c3c; color: white; border: none;
             width: 50px; height: 50px; border-radius: 50%;
             cursor: pointer; z-index: 9999; display: flex;
             align-items: center; justify-content: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
         #debug-panel {
             position: fixed; bottom: 80px; right: 20px;
@@ -91,16 +89,13 @@
 
     <div class="wrapper">
         <main>
-            <h2 class="section-title">Latest Updates</h2>
-            <div class="manga-grid" id="manga-list">
-                <p style="grid-column: 1/-1; text-align: center; color: var(--muted);">Checking API Connection...</p>
-            </div>
+            <h2 style="margin-bottom: 20px; text-transform: uppercase;">Latest Updates</h2>
+            <div class="manga-grid" id="manga-list"></div>
             <button id="load-more" class="load-more-btn">LOAD MORE</button>
         </main>
-
         <aside>
             <div style="background: var(--card); padding: 15px; border-radius: 8px;">
-                <div style="margin-bottom: 10px; font-weight: bold; color: var(--accent); font-size: 0.7rem;">SPONSORED</div>
+                <div style="font-weight: bold; color: var(--accent); font-size: 0.7rem;">SPONSORED</div>
                 <script async="async" data-cfasync="false" src="https://spreadpreferencetelevision.com/4c0ed34fba63006187eb212da78a33af/invoke.js"></script>
                 <div id="container-4c0ed34fba63006187eb212da78a33af"></div>
             </div>
@@ -116,48 +111,45 @@
         let offset = 0;
         const list = document.getElementById('manga-list');
         const debugContent = document.getElementById('debug-content');
+        
+        // Proxy to bypass "Failed to fetch" errors
+        const corsProxy = "https://corsproxy.io/?";
 
-        function logDebug(msg, data = null) {
-            const timestamp = new Date().toLocaleTimeString();
-            debugContent.innerHTML += `<div style="margin-bottom:8px">[${timestamp}] ${msg}</div>`;
-            if(data) debugContent.innerHTML += `<pre style="color:#aaa; white-space:pre-wrap;">${JSON.stringify(data, null, 2)}</pre>`;
-            console.log(msg, data);
+        function logDebug(msg) {
+            debugContent.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;
         }
 
         async function fetchManga(query = '') {
             const btn = document.getElementById('load-more');
             btn.innerText = "LOADING...";
             
-            let url = `https://api.mangadex.org/manga?limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive&order[followedCount]=desc`;
-            if (query) url = `https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
+            let apiUrl = `https://api.mangadex.org/manga?limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive&order[followedCount]=desc`;
+            if (query) apiUrl = `https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
 
-            logDebug(`Fetching URL: ${url}`);
+            logDebug(`Attempting fetch via proxy...`);
 
             try {
-                const response = await fetch(url);
-                logDebug(`Response Status: ${response.status} ${response.statusText}`);
-                
-                if (!response.ok) {
-                    throw new Error(`API Response: ${response.status}`);
-                }
-
+                // Using corsproxy.io to bypass the block
+                const response = await fetch(corsProxy + encodeURIComponent(apiUrl));
                 const result = await response.json();
-                logDebug(`Data Received: ${result.data.length} items found.`);
+
+                logDebug(`Success! Found ${result.data.length} items.`);
 
                 if (offset === 0) list.innerHTML = '';
 
-                result.data.forEach((manga, index) => {
+                result.data.forEach(manga => {
                     const title = manga.attributes.title.en || Object.values(manga.attributes.title)[0] || "Untitled";
                     const coverRel = manga.relationships.find(rel => rel.type === 'cover_art');
                     const fileName = coverRel ? coverRel.attributes.fileName : null;
-                    const coverUrl = fileName ? `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg` : 'https://via.placeholder.com/250x350';
-
-                    if(index === 0) logDebug(`Sample Cover URL: ${coverUrl}`);
+                    
+                    // We also proxy the image URL to make sure they display
+                    const rawCover = fileName ? `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg` : 'https://via.placeholder.com/250x350';
+                    const proxiedCover = "https://images.weserv.nl/?url=" + rawCover.replace("https://", "");
 
                     const card = document.createElement('div');
                     card.className = 'manga-card';
                     card.innerHTML = `
-                        <img src="${coverUrl}" alt="${title}" referrerpolicy="no-referrer" onerror="this.src='https://via.placeholder.com/250x350?text=Blocked';">
+                        <img src="${proxiedCover}" alt="${title}">
                         <div class="manga-info">${title}</div>
                     `;
                     card.onclick = () => window.location.href = `reader.html?id=${manga.id}`;
@@ -167,23 +159,19 @@
                 offset += 12;
                 btn.innerText = "LOAD MORE";
             } catch (error) {
-                logDebug(`FATAL ERROR: ${error.message}`);
-                list.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #e74c3c;">Connection Error. Click the Red Bug icon for details.</p>`;
+                logDebug(`PROXY ERROR: ${error.message}`);
+                btn.innerText = "RETRYING...";
+                setTimeout(fetchManga, 3000);
             }
         }
 
-        // UI Controls
         document.getElementById('debug-toggle').onclick = () => {
             const panel = document.getElementById('debug-panel');
             panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
         };
 
         document.getElementById('manga-search').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                offset = 0;
-                logDebug(`Searching for: ${e.target.value}`);
-                fetchManga(e.target.value);
-            }
+            if (e.key === 'Enter') { offset = 0; fetchManga(e.target.value); }
         });
 
         document.getElementById('load-more').onclick = () => fetchManga(document.getElementById('manga-search').value);
