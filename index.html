@@ -52,7 +52,10 @@
             transition: 0.3s; cursor: pointer; border: 1px solid transparent;
         }
         .manga-card:hover { border-color: var(--accent); transform: translateY(-3px); }
-        .manga-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #222; }
+        .manga-card img { 
+            width: 100%; aspect-ratio: 2/3; object-fit: cover; 
+            background: #222; display: block; min-height: 240px;
+        }
         .manga-info { padding: 10px; font-size: 0.85rem; text-align: center; font-weight: 600; }
 
         .load-more-btn {
@@ -97,7 +100,6 @@
 
     <script>
         let offset = 0;
-        let isSearchMode = false;
         const list = document.getElementById('manga-list');
         const searchInput = document.getElementById('manga-search');
 
@@ -105,11 +107,11 @@
             const btn = document.getElementById('load-more');
             btn.innerText = "LOADING...";
             
-            // Build API URL
-            let url = `https://api.mangadex.org/manga?limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
+            // Build API URL - specifically asking for cover_art and using a popular sort
+            let url = `https://api.mangadex.org/manga?limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive&order[followedCount]=desc`;
+            
             if (query) {
-                url += `&title=${encodeURIComponent(query)}`;
-                if (!isSearchMode) { list.innerHTML = ''; isSearchMode = true; offset = 0; }
+                url = `https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=12&offset=${offset}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
                 document.getElementById('grid-title').innerText = `Results for: ${query}`;
             }
 
@@ -117,18 +119,25 @@
                 const response = await fetch(url);
                 const result = await response.json();
 
+                if (offset === 0 && query) list.innerHTML = '';
+
                 result.data.forEach(manga => {
                     const title = manga.attributes.title.en || Object.values(manga.attributes.title)[0] || "Untitled";
+                    
+                    // Locate the cover art in the relationships array
                     const coverRel = manga.relationships.find(rel => rel.type === 'cover_art');
-                    const fileName = coverRel ? coverRel.attributes.fileName : null;
+                    const fileName = coverRel && coverRel.attributes ? coverRel.attributes.fileName : null;
+                    
+                    // Use a slightly different thumbnail size (.256.jpg) to help with loading speed
                     const coverUrl = fileName 
                         ? `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg` 
-                        : 'https://via.placeholder.com/250x350/161921/FFFFFF?text=No+Cover';
+                        : 'https://via.placeholder.com/256x360/161921/FFFFFF?text=No+Cover';
 
                     const card = document.createElement('div');
                     card.className = 'manga-card';
                     card.innerHTML = `
-                        <img src="${coverUrl}" alt="${title}" onerror="this.src='https://via.placeholder.com/250x350/161921/FFFFFF?text=Error+Loading'">
+                        <img src="${coverUrl}" alt="${title}" loading="lazy" 
+                             onerror="this.onerror=null; this.src='https://via.placeholder.com/256x360/161921/FFFFFF?text=Image+Blocked';">
                         <div class="manga-info">${title}</div>
                     `;
                     card.onclick = () => window.location.href = `reader.html?id=${manga.id}`;
@@ -137,7 +146,9 @@
 
                 offset += 12;
                 btn.innerText = "LOAD MORE";
-                if (result.data.length < 12) btn.style.display = 'none';
+                if (result.data.length === 0 && offset === 12) {
+                    list.innerHTML = `<p style="grid-column: 1/-1; text-align: center;">No results found. Try another title!</p>`;
+                }
             } catch (error) {
                 console.error("API Error:", error);
                 btn.innerText = "ERROR LOADING";
