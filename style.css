@@ -1,14 +1,13 @@
 body{
 margin:0;
-font-family:Inter,sans-serif;
 background:#0b0d10;
 color:white;
+font-family:Inter,sans-serif;
 }
 
 nav{
 background:#161921;
-padding:14px 5%;
-border-bottom:2px solid #1e293b;
+padding:12px;
 display:flex;
 justify-content:space-between;
 align-items:center;
@@ -17,12 +16,18 @@ align-items:center;
 .logo{
 font-weight:800;
 font-size:1.5rem;
-color:white;
-text-decoration:none;
 }
 
 .logo span{
 color:#9b59b6;
+}
+
+#searchBox{
+padding:10px;
+border-radius:6px;
+border:none;
+background:#1e293b;
+color:white;
 }
 
 .container{
@@ -31,62 +36,18 @@ margin:auto;
 padding:20px;
 }
 
-.section-title{
-margin:20px 0;
-font-size:1.2rem;
-color:#9b59b6;
-}
-
 .grid{
 display:grid;
 grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
-gap:18px;
-}
-
-.card{
-cursor:pointer;
-transition:.2s;
-}
-
-.card:hover{
-transform:scale(1.05);
+gap:15px;
 }
 
 .card img{
 width:100%;
 border-radius:6px;
-aspect-ratio:2/3;
-object-fit:cover;
 }
 
 .title{
-font-size:.85rem;
-margin-top:6px;
-}
-
-.search{
-width:100%;
-padding:12px;
-border:none;
-border-radius:6px;
-background:#161921;
-color:white;
-margin-bottom:20px;
-}
-
-.chapter{
-padding:14px;
-border-bottom:1px solid #1e293b;
-cursor:pointer;
-}
-
-.chapter:hover{
-background:#1e293b;
-}
-
-.reader-img{
-width:100%;
-max-width:900px;
-display:block;
-margin:auto;
+font-size:.8rem;
+margin-top:5px;
 }
