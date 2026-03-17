@@ -3,54 +3,267 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Media Reader</title>
-    <link rel="stylesheet" href="style.css">
+    <title>JMCY STREAM | Premium Movies</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --card-bg: #181818;
+            --text-color: #ffffff;
+            --accent-color: #9d50bb;
+            --border-color: #333;
+            --status-bg: #ff9f43;
+        }
+
+        body { 
+            background: var(--bg-color); 
+            color: var(--text-color); 
+            font-family: 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; 
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* LOADING OVERLAY */
+        #loading-overlay {
+            position: fixed; inset: 0; background: var(--bg-color);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 9999; transition: 0.5s;
+        }
+
+        .loader { width: 50px; height: 50px; border: 5px solid #333; border-top: 5px solid var(--accent-color); border-radius: 50%; animation: spin 1s linear infinite; }
+
+        /* HEADER SECTION */
+        .header-section {
+            text-align: center; padding: 20px 10px; position: sticky; top: 0;
+            background: var(--bg-color); z-index: 100; border-bottom: 2px solid var(--accent-color);
+        }
+
+        h1 { color: var(--accent-color); margin: 0 0 5px 0; font-size: 1.8rem; text-transform: uppercase; letter-spacing: 2px; }
+        
+        #total-counter { color: var(--accent-color); font-size: 0.85rem; margin-bottom: 15px; font-weight: bold; opacity: 0.8; }
+
+        .controls { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+        #movieSearch {
+            width: 90%; max-width: 400px; padding: 12px 20px; border-radius: 25px;
+            border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); outline: none;
+        }
+
+        .category-filters { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+        .filter-btn {
+            background: var(--card-bg); color: var(--text-color); border: 1px solid var(--border-color);
+            padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; transition: 0.3s;
+        }
+
+        .filter-btn.active { background: var(--accent-color); color: white; border-color: var(--accent-color); }
+
+        /* MOVIE GRID */
+        .movie-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+            padding: 15px; max-width: 1000px; margin: 0 auto; flex: 1;
+        }
+
+        .movie-card { 
+            background: var(--card-bg); border-radius: 12px; overflow: hidden; 
+            border: 1px solid var(--border-color); display: flex; flex-direction: column; position: relative;
+        }
+
+        .status-badge {
+            position: absolute; top: 10px; left: 10px; background: var(--status-bg);
+            color: #000; font-size: 0.65rem; font-weight: bold; padding: 3px 10px; border-radius: 5px; z-index: 5; text-transform: uppercase;
+        }
+
+        .video-container { position: relative; padding-bottom: 56.25%; height: 0; background: #000; }
+        .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+
+        .info { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+        .info h3 { margin: 0; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .fullscreen-btn { background: var(--accent-color); color: white; border: none; padding: 10px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; }
+
+        /* PAGINATION */
+        .pagination-container { display: flex; justify-content: center; align-items: center; gap: 20px; padding: 25px; }
+        .nav-btn { background: var(--card-bg); color: var(--text-color); border: 1px solid var(--accent-color); padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .nav-btn:disabled { opacity: 0.2; cursor: not-allowed; border-color: #444; }
+        #page-info { font-size: 0.9rem; font-weight: bold; color: var(--accent-color); }
+
+        /* ADS */
+        .ad-mid-container { display: flex; justify-content: center; padding: 20px 10px; min-height: 100px; background: rgba(255,255,255,0.02); }
+
+        footer { text-align: center; padding: 30px; border-top: 1px solid var(--border-color); font-size: 0.8rem; opacity: 0.6; }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        @media (max-width: 480px) {
+            .movie-grid { gap: 8px; padding: 8px; }
+            h1 { font-size: 1.5rem; }
+        }
+    </style>
 </head>
 <body>
 
-    <section class="hero">
-        <div class="hero-content">
-            <div class="hero-text">
-                <span class="rating">⭐ 9.6</span>
-                <h1>RAISING VILLAINS THE RI...</h1>
-                <p class="genres">Action, Adventure, Comedy...</p>
-                <div class="summary">
-                    <strong>SUMMARY</strong>
-                    <p>[By the studio that brought you...]</p>
-                </div>
-                <p class="status">Status: Ongoing</p>
-            </div>
-            <img src="featured-cover.jpg" alt="Cover" class="hero-img">
-        </div>
-        <div class="carousel-dots">
-            <span class="dot active"></span>
-            <span class="dot"></span>
-            </div>
-    </section>
+    <div id="loading-overlay">
+        <div class="loader"></div>
+        <p style="margin-top: 15px; letter-spacing: 1px;">LOADING JMCY STREAM...</p>
+    </div>
 
-    <main class="container">
-        <h2>Popular Today</h2>
-        <div class="card-grid">
-            <div class="card">
-                <div class="img-container">
-                    <img src="sword-sense.jpg" alt="Absolute Sword Sense">
-                    <span class="badge">MANHWA</span>
-                </div>
-                <h3>Absolute Sword Sense</h3>
-                <p class="chapter">Chapter 174</p>
-                <p class="card-rating">⭐⭐⭐⭐⭐ 9.6</p>
+    <div class="header-section">
+        <h1>JMCY STREAM</h1>
+        <div id="total-counter">0 Movies Available</div>
+        <div class="controls">
+            <div class="category-filters">
+                <button class="filter-btn active" onclick="filterCategory('all', this)">All</button>
+                <button class="filter-btn" onclick="filterCategory('action', this)">Action</button>
+                <button class="filter-btn" onclick="filterCategory('comedy', this)">Comedy</button>
+                <button class="filter-btn" onclick="filterCategory('horror', this)">Horror</button>
             </div>
-            <div class="card">
-                <div class="img-container">
-                    <img src="swordmaster.jpg" alt="Swordmaster">
-                    <span class="badge">MANHWA</span>
-                </div>
-                <h3>Swordmaster's Youngest Son</h3>
-                <p class="chapter">Chapter 201</p>
-                <p class="card-rating">⭐⭐⭐⭐⭐ 9.5</p>
-            </div>
+            <input type="text" id="movieSearch" placeholder="Search movies..." onkeyup="handleSearch()">
         </div>
-    </main>
+    </div>
+
+    <div class="movie-grid" id="movieGrid"></div>
+
+    <div class="pagination-container">
+        <button id="prevBtn" class="nav-btn" onclick="changePage(-1)">Previous</button>
+        <span id="page-info">Page 1</span>
+        <button id="nextBtn" class="nav-btn" onclick="changePage(1)">Next</button>
+    </div>
+
+    <div class="ad-mid-container">
+        <script async="async" data-cfasync="false" src="https://spreadpreferencetelevision.com/4c0ed34fba63006187eb212da78a33af/invoke.js"></script>
+        <div id="container-4c0ed34fba63006187eb212da78a33af"></div>
+    </div>
+
+    <footer>&copy; 2026 JMCY Web Solutions</footer>
+
+    <script>
+        // UPDATED GOOGLE SHEET CSV URL
+        const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR6_0pB6D0oV3v7M0T5m9_l0RQiRjlNuAwKd8JRimCv0/pub?output=csv';
+
+        let allMovies = [];
+        let filteredMovies = [];
+        let currentPage = 1;
+        const moviesPerPage = 10;
+
+        async function loadMovies() {
+            try {
+                const response = await fetch(sheetUrl);
+                const data = await response.text();
+                const rows = data.split('\n').slice(1); 
+                
+                allMovies = rows.map((row, index) => {
+                    const columns = row.split(',');
+                    return {
+                        title: columns[0]?.trim(),
+                        category: columns[1]?.trim().toLowerCase(),
+                        url: columns[2]?.trim(),
+                        status: columns[3]?.trim() || "",
+                        id: `player${index}`
+                    };
+                }).filter(m => m.url && m.title); 
+
+                document.getElementById('total-counter').innerText = `${allMovies.length} Movies Available`;
+                filteredMovies = [...allMovies];
+                renderPage();
+
+                document.getElementById('loading-overlay').style.opacity = '0';
+                setTimeout(() => { document.getElementById('loading-overlay').style.display = 'none'; }, 500);
+            } catch (error) {
+                console.error("Error loading CSV:", error);
+                document.getElementById('loading-overlay').innerHTML = "<p>Error loading sheet. Check your CSV link.</p>";
+            }
+        }
+
+        function renderPage() {
+            const grid = document.getElementById('movieGrid');
+            grid.innerHTML = '';
+
+            const start = (currentPage - 1) * moviesPerPage;
+            const end = start + moviesPerPage;
+            const pageItems = filteredMovies.slice(start, end);
+
+            pageItems.forEach(movie => {
+                const badgeHtml = movie.status ? `<div class="status-badge">${movie.status}</div>` : '';
+                const card = `
+                    <div class="movie-card">
+                        ${badgeHtml}
+                        <div class="video-container" id="${movie.id}">
+                            <iframe src="${movie.url}" allowfullscreen></iframe>
+                        </div>
+                        <div class="info">
+                            <h3>${movie.title}</h3>
+                            <button class="fullscreen-btn" onclick="goFullscreen('${movie.id}')">⛶ Fullscreen</button>
+                        </div>
+                    </div>
+                `;
+                grid.innerHTML += card;
+            });
+
+            updatePaginationControls();
+        }
+
+        function updatePaginationControls() {
+            const totalPages = Math.ceil(filteredMovies.length / moviesPerPage);
+            document.getElementById('page-info').innerText = `Page ${currentPage} of ${totalPages || 1}`;
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage === totalPages || totalPages === 0;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function changePage(step) {
+            currentPage += step;
+            renderPage();
+        }
+
+        function handleSearch() {
+            const search = document.getElementById('movieSearch').value.toLowerCase();
+            const activeBtn = document.querySelector('.filter-btn.active').innerText.toLowerCase();
+            
+            filteredMovies = allMovies.filter(movie => {
+                const matchesCat = (activeBtn === 'all' || movie.category === activeBtn);
+                const matchesSearch = movie.title.toLowerCase().includes(search);
+                return matchesCat && matchesSearch;
+            });
+
+            currentPage = 1;
+            renderPage();
+        }
+
+        function filterCategory(category, btn) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            handleSearch();
+        }
+
+        // FULLSCREEN + AUTO LANDSCAPE
+        async function goFullscreen(id) {
+            const container = document.getElementById(id);
+            try {
+                if (container.requestFullscreen) {
+                    await container.requestFullscreen();
+                } else if (container.webkitRequestFullscreen) {
+                    await container.webkitRequestFullscreen();
+                }
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock("landscape").catch(() => {});
+                }
+            } catch (err) {
+                console.log(err);
+            }
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && screen.orientation && screen.orientation.unlock) {
+                screen.orientation.unlock();
+            }
+        });
+
+        loadMovies();
+    </script>
+
+    <script src="https://spreadpreferencetelevision.com/86/8d/1e/868d1eaa7d5b69adc9f351c0b95fb6f5.js"></script>
 
 </body>
 </html>
